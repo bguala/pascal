@@ -35,6 +35,8 @@ public class Lexico {
         this.tokens="";
         this.linea_programa=1;
         this.comentario_sin_cerrar=false;
+        
+        this.cargar_palabras_reservadas();
     }
     
     //-----------------------------------------------------------------------------------
@@ -117,7 +119,7 @@ public class Lexico {
             }
             
             if(this.comentario_sin_cerrar){
-                System.out.println("Error Lexico : *** Comentario sin cerrar *** Linea");
+                System.out.println("\nError Lexico : *** Comentario sin cerrar *** ");
                 System.exit(1);
             }
         }catch(FileNotFoundException ex){
@@ -157,24 +159,14 @@ public class Lexico {
     }
     
     private boolean es_palabra_reservada (String lex){
-        int i=0;
-        int n=this.palabras_reservadas.size();
-        boolean fin=false;
-        
-        while(i<n && !fin){
-            if(lex.equalsIgnoreCase(this.palabras_reservadas.elementAt(i))){
-                fin=true;
-            }
-            i++;
-        }
-        return fin;
+        return this.palabras_reservadas.contains(lex);
     }
     
     private void examinar_cadena (String cadena){
-        //String tokens="";
 	String lex="";
 	char c=' ';
-        int estado=0;
+        int estado=(this.comentario_sin_cerrar) ? 5 : 0 ;
+        
 	int n=cadena.length();
         
         int i;
@@ -245,7 +237,7 @@ public class Lexico {
                             case '¡' : 
                             case '¿' : 
                             case '_' :
-                            case '~' : System.out.println("Error Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
+                            case '~' : System.out.println("\nError Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
                                        System.exit(1);
                                        break;
                             default : if ((int)c>=48 && (int)c<=57){
@@ -283,7 +275,7 @@ public class Lexico {
                             case '¡' : 
                             case '¿' : 
                             case '_' :
-                            case '~' : System.out.println("Error Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
+                            case '~' : System.out.println("\nError Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
                                        System.exit(1);
                                        break;
                             default: 
@@ -304,7 +296,6 @@ public class Lexico {
                                                     tokens_sintacticos.addElement(new Token("identificador",lex,this.linea_programa));
                                                 }
                                             }
-                                            
                                             
                                         }
                                      }else{
@@ -340,7 +331,7 @@ public class Lexico {
                             case '¡' : 
                             case '¿' : 
                             case '_' :
-                            case '~' : System.out.println("Error Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
+                            case '~' : System.out.println("\nError Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
                                        System.exit(1);
                                        break;
                             default: 
@@ -381,7 +372,7 @@ public class Lexico {
                             case '¡' : 
                             case '¿' : 
                             case '_' :
-                            case '~' : System.out.println("Error Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
+                            case '~' : System.out.println("\nError Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
                                        System.exit(1);
                                        break;
                             default : 
@@ -430,7 +421,7 @@ public class Lexico {
                             case '¡' : 
                             case '¿' : 
                             case '_' :
-                            case '~' : System.out.println("Error Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
+                            case '~' : System.out.println("\nError Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
                                        System.exit(1);
                                        break;
                             default: 
@@ -473,7 +464,7 @@ public class Lexico {
                              case '¡' : 
                              case '¿' : 
                              case '_' :
-                             case '~' : System.out.println("Error Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
+                             case '~' : System.out.println("\nError Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
                                         System.exit(1);
                                         break;
                              case '>' :
@@ -512,7 +503,7 @@ public class Lexico {
                             case '¡' : 
                             case '¿' : 
                             case '_' :
-                            case '~' : System.out.println("Error Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
+                            case '~' : System.out.println("\nError Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
                                        System.exit(1);
                                        break;
                             default:   if(c == '='){
@@ -539,8 +530,6 @@ public class Lexico {
                 
             }
         }
-        
-        //return tokens;
     }
     
 }

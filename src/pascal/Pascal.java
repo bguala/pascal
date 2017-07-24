@@ -37,7 +37,7 @@ public class Pascal {
                     case 'l' : lexico=new Lexico(archivo);
                                lexico.analisis_lexico();
                                lexico.guardar_tokens();
-                               System.out.println("\n Analisis lexico exitoso \n");
+                               System.out.println("\n\n Analisis lexico exitoso \n\n");
                                break;
                     case 's' : lexico=new Lexico(archivo);
                                lexico.analisis_lexico();
@@ -46,7 +46,7 @@ public class Pascal {
 //                               Sintactico sintactico=new Sintactico(lexico.get_tokens(), TS);
 //                               sintactico.analisis_sintactico();
                                
-                               System.out.println("\n Analisis sintactico exitoso \n");
+                               System.out.println("\n\n Analisis sintactico exitoso \n\n");
                                break;
                     case 'c' : System.out.println("\nIniciando proceso de compilacion....\n\n");
                                lexico=new Lexico(archivo);
