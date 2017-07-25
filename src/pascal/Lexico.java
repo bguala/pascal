@@ -156,6 +156,8 @@ public class Lexico {
         palabras_reservadas.add("enum");
         palabras_reservadas.add("integer");
         palabras_reservadas.add("boolean");
+        palabras_reservadas.add("true");
+        palabras_reservadas.add("false");
     }
     
     private boolean es_palabra_reservada (String lex){
@@ -188,10 +190,22 @@ public class Lexico {
                                        tokens_sintacticos.add(new Token("punto_y_coma",""+c,this.linea_programa));
                                        break;
                             case '.' : lex=""+c;
-                                       estado=8;
+                                       //Consultamos si es el ultimo caracter de la linea de codigo.
+                                       if(i==(n-1)){
+                                           tokens=tokens+"\n<punto,"+lex+">\n";
+                                           tokens_sintacticos.add(new Token("punto",lex,this.linea_programa));
+                                       }else
+                                            estado=8;
+                                       
                                        break;//Podemos tener un subrango
                             case ':' : lex=""+c;
-                                       estado=4;
+                                       //Consultamos si es el ultimo caracter de la linea de codigo.
+                                       if(i==(n-1)){
+                                           tokens=tokens+"\n<dos_puntos,"+lex+">\n";
+                                           tokens_sintacticos.add(new Token("dos_puntos",lex,this.linea_programa));
+                                       }else
+                                            estado=4;
+                                       
                                        break;//Podemos tener el operador de asignacion
                             case '(' : tokens=tokens+"\n<apertura_perentesis,"+c+">\n";
                                        //Crear objeto token y guardarlo en tokens_sintacticos
@@ -210,9 +224,21 @@ public class Lexico {
                                        tokens_sintacticos.add(new Token("cierre_corchetes",""+c,this.linea_programa));
                                        break;
                             case '<' : lex=""+c;
-                                       estado=7;
+                                       //Consultamos si c es el ultimo carcater de la linea de codigo.
+                                       if(i==(n-1)){
+                                           tokens=tokens+"\n<op_relacional,"+lex+">\n";
+                                           tokens_sintacticos.add(new Token("op_relacional",lex,this.linea_programa));
+                                       }else
+                                            estado=7;
                                        break;//Podemos tener un = o > y formar <= o <>
-                            case '>' : 
+                            case '>' : lex=""+c;
+                                       //Consultamos si c es el ultimo caracter de la linea de codigo.
+                                       if(i==(n-1)){
+                                           tokens=tokens+"\n<op_relacional,"+lex+">\n";
+                                           tokens_sintacticos.add(new Token("op_relacional",lex,this.linea_programa));
+                                       }else
+                                           estado=9;
+                                       
                                        break;//Podemos tener un =, >=
                             case '=' : tokens=tokens+"\n<op_relacional,"+c+">\n";
                                        //Crear objeto token y guardarlo en tokens_sintacticos
