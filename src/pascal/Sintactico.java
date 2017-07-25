@@ -8,6 +8,7 @@ package pascal;
 import java.util.ArrayList;
 import simbolo.Token;
 import tabla_simbolos.TablaSimbolos;
+import simbolo.*;
 /**
  *
  * @author Bruno
@@ -94,7 +95,8 @@ public class Sintactico {
     //-----------------------------------------------------------------------------------
     
     private void mi_pascal (){
-        encabezado();
+        encabezado();definicion(this.tabla_simbolos);
+        //declaracion_subprogramas();bloque(this.tabla_simbolos);
     }
     
     //-----------------------------------------------------------------------------------
@@ -117,7 +119,7 @@ public class Sintactico {
     //--- Definicion --------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    private void definicion (){
+    private void definicion (TablaSimbolos ts){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         
         switch(token.get_lexema()){
@@ -178,6 +180,66 @@ public class Sintactico {
         }
     }
     
+    private boolean identificador (Token token){
+        boolean r=false;
+        String id=token.get_lexema();
+        char c=id.charAt(0);
+        
+        if((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(id))
+            r=true;
+        else{
+            System.out.println("Error Sintactico : *** Simbolo "+id+" inesperado *** Linea "+token.get_linea_programa());
+            System.exit(1);
+        }
+        
+        return r;
+    }
+    
+    private ArrayList secuencia_ids (){
+        boolean fin=false;
+        ArrayList ids=new ArrayList();
+        
+        while(!fin && identificador(this.tokens_sintacticos.get(this.preanalisis))){
+            ids.add(this.tokens_sintacticos.get(this.preanalisis).get_lexema());
+            this.preanalisis++;
+            
+            if(this.tokens_sintacticos.get(this.preanalisis).get_lexema().equalsIgnoreCase(","))
+                this.preanalisis++;
+            else
+                fin=true;
+        }
+        
+        return ids;
+    }
+    
+    private void const_def (TablaSimbolos ts){
+        constante(ts);match(";");c1(ts);
+    }
+    
+    private void c1 (TablaSimbolos ts){
+        if(this.palabras_reservadas.contains(this.tokens_sintacticos.get(this.preanalisis)))
+            ; //Presencia de cadena nula.
+        else
+            const_def(ts);
+    }
+    
+    private void constante (TablaSimbolos ts){
+        ArrayList ids=secuencia_ids();
+        match("=");
+        String dato=this.tokens_sintacticos.get(this.preanalisis).get_lexema();
+        
+        //Verifiamos que dato sea un numero entero, true o false mediante un esquema de traduccion.
+        
+        int i;
+        int n=ids.size();
+        String id="";
+        for(i=0; i<n; i++){
+            id=(String)ids.get(i);
+            
+            ts.insertar(id, new Constante(id,1,dato));
+        }
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- Declaracion de Subprogramas ---------------------------------------------------
     //-----------------------------------------------------------------------------------
@@ -190,5 +252,103 @@ public class Sintactico {
     //--- Expresiones -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
+    private void expresion (){
+        T();E1();
+    }
+    
+    private void T (){
+        F();T1();
+    }
+    
+    private void F (){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        if(token.get_lexema().equalsIgnoreCase("not")){
+            this.preanalisis++;G();
+        }else
+            G();
+    }
+    
+    private void G (){
+        H();G1();
+    }
+    
+    private void H (){
+        I();H1();
+    }
+    
+    private void I (){
+        J();I1();
+    }
+    
+    private void J (){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        if(token.get_lexema().equalsIgnoreCase("-")){
+            this.preanalisis++;K();
+        }else
+            K();
+    }
+    
+    private void I1 (){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        switch(token.get_lexema()){
+            case "+" :
+            case "-" : this.preanalisis++;
+                       J();
+                       I1();
+                       break;
+            default : ; //Presencia de cadenanula.
+        }
+    }
+    
+    private void H1 (){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        switch(token.get_lexema()){
+            case "*" :
+            case "/" : this.preanalisis++;
+                       I();
+                       H1();
+                       break;
+            default : ; //Presencia de cadena nula.
+        }
+    }
+    
+    private void G1 (){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        switch(token.get_lexema()){
+            case ">"  :
+            case "<"  :
+            case ">=" :
+            case "<=" :
+            case "="  :
+            case "<>" : this.preanalisis++;
+                        H();
+                        G1();
+            default : ; //Presencia de cadena nula.
+        }
+    }
+    
+    private void T1 (){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        if(token.get_lexema().equalsIgnoreCase("and")){
+            this.preanalisis++;
+            F();
+            T1();
+        }else
+            ; //Presencia de cadena nula.
+    }
+    
+    private void E1 (){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        if(token.get_lexema().equalsIgnoreCase("or")){
+            this.preanalisis++;
+            T();
+            E1();
+        }else
+            ; //Presencia de cadena nula.
+    }
+    
+    private void K (){
+        
+    }
     
 }
