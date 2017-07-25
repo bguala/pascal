@@ -5,7 +5,7 @@
  */
 package simbolo;
 
-import java.util.Vector;
+import java.util.ArrayList;
 
 /**
  *
@@ -13,7 +13,7 @@ import java.util.Vector;
  */
 public class Enumeracion extends Simbolo {
     
-    private Vector<String> lista_identificadores;
+    private ArrayList<String> lista_identificadores;
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
@@ -21,14 +21,14 @@ public class Enumeracion extends Simbolo {
     
     public Enumeracion (String lexema, int espacio_asignado){
         super(lexema, espacio_asignado);
-        this.lista_identificadores=new Vector<String> ();
+        this.lista_identificadores=new ArrayList ();
     }
     
     //-----------------------------------------------------------------------------------
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Vector<String> get_lista_identificadores (){
+    public ArrayList<String> get_lista_identificadores (){
         return this.lista_identificadores;
     }
     
@@ -36,7 +36,7 @@ public class Enumeracion extends Simbolo {
     //--- Modificadores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public void set_lista_identificadores (Vector<String> identificadores){
+    public void set_lista_identificadores (ArrayList<String> identificadores){
         this.lista_identificadores=identificadores;
     }
     
@@ -60,7 +60,7 @@ public class Enumeracion extends Simbolo {
             
             for(i=0; i<n; i++){
                 coma=(i==(n-1)) ? " ) " : " , " ;
-                str=str+this.lista_identificadores.elementAt(i)+coma;
+                str=str+this.lista_identificadores.get(i)+coma;
             }
         }
         

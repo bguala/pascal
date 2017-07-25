@@ -5,7 +5,7 @@
  */
 package simbolo;
 
-import java.util.Vector;
+import java.util.ArrayList;
 import tipos.*;
 
 /**
@@ -14,14 +14,14 @@ import tipos.*;
  */
 public class Parametro {
     
-    private Vector<String> parametro_formal;//Contiene listas de identifiadores id1, id2, id3 etc.
+    private ArrayList<String> parametro_formal;//Contiene listas de identifiadores id1, id2, id3 etc.
     private Tipo tipo_dato;
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Parametro (Vector<String> parametro_formal, Tipo tipo_dato){
+    public Parametro (ArrayList<String> parametro_formal, Tipo tipo_dato){
         this.parametro_formal=parametro_formal;
         this.tipo_dato=tipo_dato;
     }
@@ -30,7 +30,7 @@ public class Parametro {
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Vector<String> get_parametro_formal (){
+    public ArrayList<String> get_parametro_formal (){
         return this.parametro_formal;
     }
         
@@ -42,7 +42,7 @@ public class Parametro {
     //--- Modificadores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public void set_parametro_formal (Vector<String> parametros_formales){
+    public void set_parametro_formal (ArrayList<String> parametros_formales){
         this.parametro_formal=parametros_formales;
     }
     
@@ -60,7 +60,7 @@ public class Parametro {
         String str="", fin="", param="";
         
         for(i=0; i<n; i++){
-            param=this.parametro_formal.elementAt(i);
+            param=this.parametro_formal.get(i);
             fin=(i==(n-1)) ? "" : "," ;
             str=str+param+fin;
         }

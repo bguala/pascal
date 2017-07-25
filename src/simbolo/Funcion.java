@@ -5,7 +5,7 @@
  */
 package simbolo;
 
-import java.util.Vector;
+import java.util.ArrayList;
 import java.util.Iterator;
 import tipos.*;
 
@@ -15,7 +15,7 @@ import tipos.*;
  */
 public class Funcion extends Simbolo {
     
-    private Vector<Parametro> lista_parametros;
+    private ArrayList<Parametro> lista_parametros;
     private String pasaje_parametro;
     private Tipo tipo_retorno;
     
@@ -27,14 +27,14 @@ public class Funcion extends Simbolo {
         super(lexema,espacio_asignado);
         this.pasaje_parametro="valor";
         this.tipo_retorno=null;
-        this.lista_parametros=new Vector<Parametro>();
+        this.lista_parametros=new ArrayList();
     }
     
     //-----------------------------------------------------------------------------------
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Vector<Parametro> get_lista_parametros (){
+    public ArrayList<Parametro> get_lista_parametros (){
         return this.lista_parametros;
     }
     
@@ -50,7 +50,7 @@ public class Funcion extends Simbolo {
     //--- Modificadores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public void set_lista_parametros (Vector<Parametro> lista_parametros){
+    public void set_lista_parametros (ArrayList<Parametro> lista_parametros){
         this.lista_parametros=lista_parametros;
     }
     
@@ -82,7 +82,7 @@ public class Funcion extends Simbolo {
             int n=this.lista_parametros.size();
 
             for(i=0; i<n; i++){
-                parametro=(Parametro)this.lista_parametros.elementAt(i);
+                parametro=(Parametro)this.lista_parametros.get(i);
                 fin=(i==(n-1)) ? ""  : " , " ;
                 str=str + parametro.a_cadena() + fin;
             }

@@ -5,7 +5,7 @@
  */
 package simbolo;
 
-import java.util.Vector;
+import java.util.ArrayList;
 
 /**
  *
@@ -13,7 +13,7 @@ import java.util.Vector;
  */
 public class Registro extends Simbolo {
     
-    private Vector<Parametro> lista_campos;
+    private ArrayList<Parametro> lista_campos;
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
@@ -21,14 +21,14 @@ public class Registro extends Simbolo {
     
     public Registro (String lexema, int espacio_asignado){
         super(lexema, espacio_asignado);
-        this.lista_campos=new Vector<Parametro> ();
+        this.lista_campos=new ArrayList();
     }
     
     //-----------------------------------------------------------------------------------
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Vector get_lista_campos (){
+    public ArrayList get_lista_campos (){
         return this.lista_campos;
     }
     
@@ -36,7 +36,7 @@ public class Registro extends Simbolo {
     //--- Modificadores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public void set_lista_campos (Vector<Parametro> campos){
+    public void set_lista_campos (ArrayList<Parametro> campos){
         this.lista_campos=campos;
     }
     
@@ -60,7 +60,7 @@ public class Registro extends Simbolo {
             Parametro param;
             
             for(i=0; i<n; i++){
-                param=this.lista_campos.elementAt(i);
+                param=this.lista_campos.get(i);
                 coma=(i==(n-1)) ? " ) " : " , " ;
                 str=str+param.a_cadena()+coma;
             }

@@ -24,12 +24,20 @@ public class TablaSimbolos {
     //Para fines de debug, permite recorrer en sentido inverso la cadena estatica.
     private TablaSimbolos inferior;
     
+    //-----------------------------------------------------------------------------------
+    //--- Constructor -------------------------------------------------------------------
+    //-----------------------------------------------------------------------------------
+    
     public TablaSimbolos (int id){
         this.tabla_simbolos=new HashMap<String, Simbolo>(75, (float)0.8);
         this.id_entorno=id;
         this.superior=null;
         this.inferior=null;
     }
+    
+    //-----------------------------------------------------------------------------------
+    //--- Observadores ------------------------------------------------------------------
+    //-----------------------------------------------------------------------------------
     
     public Simbolo get (String lexema){
         Simbolo s=null;
@@ -40,6 +48,26 @@ public class TablaSimbolos {
         
         return s;
     }
+    
+    public int get_id (){
+        return this.id_entorno;
+    }
+    
+    //-----------------------------------------------------------------------------------
+    //--- Modificadores -----------------------------------------------------------------
+    //-----------------------------------------------------------------------------------
+    
+    public void set_ts_superior (TablaSimbolos ts){
+        this.superior=ts;
+    }
+    
+    public void set_ts_inferior (TablaSimbolos ts){
+        this.inferior=ts;
+    }
+    
+    //-----------------------------------------------------------------------------------
+    //--- Propios -----------------------------------------------------------------------
+    //-----------------------------------------------------------------------------------
     
     public String insertar (String lexema, Simbolo simbolo){
         String r="";
@@ -60,7 +88,7 @@ public class TablaSimbolos {
         }
         
         return s;
-    } 
+    }
     
     public String mostrar_contenido (){
         String cadena="";
@@ -74,18 +102,6 @@ public class TablaSimbolos {
         }
         
         return cadena;
-    }
-    
-    public int get_id (){
-        return this.id_entorno;
-    }
-    
-    public void set_ts_superior (TablaSimbolos ts){
-        this.superior=ts;
-    }
-    
-    public void set_ts_inferior (TablaSimbolos ts){
-        this.inferior=ts;
     }
     
 }
