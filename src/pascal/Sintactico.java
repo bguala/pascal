@@ -117,6 +117,67 @@ public class Sintactico {
     //--- Definicion --------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
+    private void definicion (){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        switch(token.get_lexema()){
+            
+            case "const" : this.preanalisis++;//C();
+                           token=this.tokens_sintacticos.get(this.preanalisis);
+                           switch(token.get_lexema()){
+                               
+                               case "type" : this.preanalisis++;//type_def();
+                                             token=this.tokens_sintacticos.get(this.preanalisis);
+                                             if(token.get_lexema().equalsIgnoreCase("var")){
+                                                 this.preanalisis++;//var_def();
+                                             }
+                                             break;
+                               case "var" : this.preanalisis++;//var_def();
+                                            token=this.tokens_sintacticos.get(this.preanalisis);
+                                            if(token.get_lexema().equalsIgnoreCase("type")){
+                                                this.preanalisis++;//type_def();
+                                            }
+                                            break;
+                           }
+                           break;
+            case "type" : this.preanalisis++;//type_def();
+                          token=this.tokens_sintacticos.get(this.preanalisis);
+                          switch(token.get_lexema()){
+                              case "const" : this.preanalisis++;//const_def();
+                                             token=this.tokens_sintacticos.get(this.preanalisis);
+                                             if(token.get_lexema().equalsIgnoreCase("var")){
+                                                 this.preanalisis++;//var_def();
+                                             }
+                                             break;
+                              case "var" : this.preanalisis++;//var_def();
+                                           token=this.tokens_sintacticos.get(this.preanalisis);
+                                           if(token.get_lexema().equalsIgnoreCase("const")){
+                                               this.preanalisis++;//const_def();
+                                           }
+                                           break;
+                          }
+                          break;
+            case "var" : this.preanalisis++;//var_def();
+                         token=this.tokens_sintacticos.get(this.preanalisis);
+                         switch(token.get_lexema()){
+                             case "const" : this.preanalisis++;//const_def();
+                                            token=this.tokens_sintacticos.get(this.preanalisis);
+                                            if(token.get_lexema().equalsIgnoreCase("type")){
+                                                this.preanalisis++;//type_def();
+                                            }
+                                            break;
+                             case "type" : this.preanalisis++;//type_def();
+                                           token=this.tokens_sintacticos.get(this.preanalisis);
+                                           if(token.get_lexema().equalsIgnoreCase("const")){
+                                               this.preanalisis++;//type_def();
+                                           }
+                                           break;
+                         }
+                         break;
+            
+        }
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- Declaracion de Subprogramas ---------------------------------------------------
     //-----------------------------------------------------------------------------------
