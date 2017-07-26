@@ -27,7 +27,7 @@ public class Sintactico {
     
     public Sintactico (ArrayList<Token> tokens_sintacticos, ArrayList<String> palabras){
         this.preanalisis=0;
-        this.id_entorno=0;
+        this.id_entorno=1;
         this.tokens_sintacticos=tokens_sintacticos;
         this.palabras_reservadas=palabras;
         
@@ -104,15 +104,9 @@ public class Sintactico {
     //-----------------------------------------------------------------------------------
     
     private void encabezado (){
-        match("program");identificador();match(";");
-    }
-    
-    private boolean identificador (){
+        match("program");
         Token token=this.tokens_sintacticos.get(this.preanalisis);
-        String id=token.get_lexema();
-        
-        return (!this.palabras_reservadas.contains(id)) ? true : false ;
-        
+        identificador(token);match(";");
     }
     
     //-----------------------------------------------------------------------------------
@@ -176,6 +170,7 @@ public class Sintactico {
                                            break;
                          }
                          break;
+            default : //Segmento de definicion vacio.
             
         }
     }
@@ -195,9 +190,9 @@ public class Sintactico {
         return r;
     }
     
-    private ArrayList secuencia_ids (){
+    private ArrayList<String> secuencia_ids (){
         boolean fin=false;
-        ArrayList ids=new ArrayList();
+        ArrayList<String> ids=new ArrayList();
         
         while(!fin && identificador(this.tokens_sintacticos.get(this.preanalisis))){
             ids.add(this.tokens_sintacticos.get(this.preanalisis).get_lexema());
@@ -217,7 +212,7 @@ public class Sintactico {
     }
     
     private void c1 (TablaSimbolos ts){
-        if(this.palabras_reservadas.contains(this.tokens_sintacticos.get(this.preanalisis)))
+        if(this.palabras_reservadas.contains(this.tokens_sintacticos.get(this.preanalisis).get_lexema()))
             ; //Presencia de cadena nula.
         else
             const_def(ts);
@@ -238,6 +233,111 @@ public class Sintactico {
             
             ts.insertar(id, new Constante(id,1,dato));
         }
+    }
+    
+    private void type_def (TablaSimbolos ts){
+        tipo(ts);match(";");type_fin(ts);
+    }
+    
+    private void tipo (TablaSimbolos ts){
+        ArrayList<String> ids=secuencia_ids();
+        match("=");
+        
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        switch(token.get_lexema()){
+            //--- Tipos Simples ---
+            case "integer" : this.preanalisis++;
+                             //Tenemos una lista de ids, que representan nuevos tipos integer.
+                             //tipo1, tipo2 = integer;
+                             break;
+            case "boolean" : this.preanalisis++;
+                             //Tenemos una lista de ids, que representan nuevos tipos boolean.
+                             //tipo1, tipo2 = boolean;
+                             break;
+            //--- Tipos Estructurados ---
+            case "("       : this.preanalisis++;
+                             //--- Enumeracion ---
+                             ArrayList cuerpo_enum=secuencia_ids();
+                             match(")");
+                             
+                             int i;
+                             int n=ids.size();
+                             String lex="";
+                             for(i=0; i<n; i++){
+                                 lex=ids.get(i);
+                                 ts.insertar(lex, new Enumeracion(lex,1,cuerpo_enum));
+                             }
+                             break;
+            case "array"   : this.preanalisis++;
+                             match("[");
+                             //Verificamos si el token actual es digito o identificador.
+                             
+                             match("..");
+                             //Nuevamente verificamos si el token actual es digito o identificador.
+                             
+                             match("]");match("of");
+                             
+                             //tipo_dato(ts,ids);
+                             
+                             break;
+            case "record"  : this.preanalisis++;
+                             match("record");
+                             
+                             //r();
+                             
+                             match("end");
+                             break;
+            default : //--- Subrango ---
+                      token=this.tokens_sintacticos.get(this.preanalisis);
+                      char c=token.get_lexema().charAt(0);
+                      //--- Digito o Identificador ---
+                      if(((int)c>=48 && (int)c<=57) || (((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122))){
+                          this.preanalisis++;
+                          match("..");
+                          
+                          if(((int)c>=48 && (int)c<=57) || (((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122))){
+                              this.preanalisis++;
+                              
+                              //Agregamos el subrango a la TS.
+                              
+                          }else{
+                              System.out.println("Error Sintactico : *** Se esperaba un numero o identificador *** Linea "+token.get_lexema());
+                          }
+                      }else{
+                          System.out.println("Error Sintactico : *** Tipo incompleto *** linea "+token.get_linea_programa());
+                          System.exit(1);
+                          
+                      }
+                      
+        }
+    }
+    
+    private void type_fin (TablaSimbolos ts){
+        if(this.palabras_reservadas.contains(this.tokens_sintacticos.get(this.preanalisis).get_lexema()))
+            ; //Presencia de cadena nula.
+        else
+            type_def(ts);
+    }
+    
+    private void r (){
+        campo();R();
+    }
+    
+    private void campo (){
+        
+    }
+    
+    private void R (){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        if(token.get_lexema().equalsIgnoreCase(";")){
+            this.preanalisis++;RP();
+        }else
+            ; //Presencia de cadena nula.
+    }
+    
+    private void RP (){
+        
     }
     
     //-----------------------------------------------------------------------------------

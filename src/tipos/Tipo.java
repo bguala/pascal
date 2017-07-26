@@ -5,11 +5,13 @@
  */
 package tipos;
 
+import simbolo.Simbolo;
+
 /**
  *
  * @author Bruno
  */
-public abstract class Tipo {
+public abstract class Tipo  {
     
     private String nombre_tipo;
     

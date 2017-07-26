@@ -5,70 +5,56 @@
  */
 package simbolo;
 
-import java.util.ArrayList;
-
 /**
  *
  * @author Bruno
  */
-public class Enumeracion extends Simbolo {
+public class Subrango extends Simbolo {
     
-    private ArrayList<String> lista_identificadores; //Representa el cuerpo de la enumeracion.
+    private String limite_inferior;
+    private String limite_superior;
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Enumeracion (String lexema, int espacio_asignado){
-        super(lexema, espacio_asignado);
-        this.lista_identificadores=new ArrayList ();
-    }
-    
-    public Enumeracion (String lexema, int espacio_asignado, ArrayList<String> cuerpo_enum){
+    public Subrango (String lexema, int espacio_asignado, String li, String ls){
         super(lexema,espacio_asignado);
-        this.lista_identificadores=cuerpo_enum;
+        this.limite_inferior=li;
+        this.limite_superior=ls;
     }
     
     //-----------------------------------------------------------------------------------
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public ArrayList<String> get_lista_identificadores (){
-        return this.lista_identificadores;
+    public String get_limite_inferior (){
+        return this.limite_inferior;
+    }
+    
+    public String get_limite_superior (){
+        return this.limite_superior;
     }
     
     //-----------------------------------------------------------------------------------
     //--- Modificadores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public void set_lista_identificadores (ArrayList<String> identificadores){
-        this.lista_identificadores=identificadores;
+    public void set_limite_inferior (String li){
+        this.limite_inferior=li;
+    }
+    
+    public void set_limite_superior (String ls){
+        this.limite_superior=ls;
     }
     
     //-----------------------------------------------------------------------------------
     //--- Propios -----------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public void agregar_identificador (String id){
-        this.lista_identificadores.add(id);
+    public String a_cadena (){
+        return super.a_cadena()+" , "+this.limite_inferior+" .. "+this.limite_superior;
     }
     
-    public String a_cadena (){
-        String str="";
-        
-        if(this.lista_identificadores.isEmpty()){
-            str="enumeracion vacia )";
-        }else{
-            String coma="";
-            int i;
-            int n=this.lista_identificadores.size();
-            
-            for(i=0; i<n; i++){
-                coma=(i==(n-1)) ? " ) " : " , " ;
-                str=str+this.lista_identificadores.get(i)+coma;
-            }
-        }
-        
-        return " ( "+str;
-    }
+    
 }

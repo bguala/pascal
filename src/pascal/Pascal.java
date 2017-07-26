@@ -43,7 +43,7 @@ public class Pascal {
                                lexico.analisis_lexico();
                                lexico.guardar_tokens();
                                    
-//                               Sintactico sintactico=new Sintactico(lexico.get_tokens(), TS);
+//                               Sintactico sintactico=new Sintactico(lexico.get_tokens(), lexico.get_palabras_reservadas);
 //                               sintactico.analisis_sintactico();
                                
                                System.out.println("\n\n Analisis sintactico exitoso \n\n");
