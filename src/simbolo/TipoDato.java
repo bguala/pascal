@@ -3,53 +3,49 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package tipos;
+package simbolo;
 
 /**
  *
  * @author Bruno
  */
-public class Simple extends Tipo {
+public class TipoDato extends Simbolo {
     
-    private String tipo_base; //integer, boolean, racional etc.
-    private String caracteritica; //Primitivo o definido
-        
+    private String tipo_base; //Integer o boolean.
+    private String caracteristica; //Primitivo o definido por el usuario.
+    
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Simple (String nombre_tipo, String tipo_base, String caracteristica){
-        super(nombre_tipo);
+    public TipoDato (String lexema, int espacio_asignado,String tipo_base, String caracteristica){
+        super(lexema,espacio_asignado); //El nombre del nuevo tipo se guarda en lexema (Simbolo)
         this.tipo_base=tipo_base;
-        this.caracteritica=caracteristica;
+        this.caracteristica=caracteristica;
     }
     
     //-----------------------------------------------------------------------------------
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
-    
-    public String get_tipo_base (){
-        return this.tipo_base;
-    }
-    
-    public String get_caracteristica (){
-        return this.caracteritica;
-    }
         
+    public String get_caracteristica (){
+        return this.caracteristica;
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- Modificadores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------
-    
-    public void set_tipo_base (String tipo_base){
-        this.tipo_base=tipo_base;
-    }
-    
+       
     public void set_caracteristica (String caracteristica){
-        this.caracteritica=caracteristica;
+        this.caracteristica=caracteristica;
     }
     
     //-----------------------------------------------------------------------------------
     //--- Propios -----------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
+    
+    public String a_cadena (){
+        return super.a_cadena()+" , "+this.caracteristica;
+    }
     
 }

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import simbolo.Token;
 import tabla_simbolos.TablaSimbolos;
 import simbolo.*;
+import tipos.*;
 /**
  *
  * @author Bruno
@@ -246,71 +247,135 @@ public class Sintactico {
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         
         switch(token.get_lexema()){
-            //--- Tipos Simples ---
+            //--- Tipos Primitivos ---
             case "integer" : this.preanalisis++;
                              //Tenemos una lista de ids, que representan nuevos tipos integer.
                              //tipo1, tipo2 = integer;
+                             insertar_tipos(ts,ids,new TipoDato("",1,"integer","definido"));
                              break;
             case "boolean" : this.preanalisis++;
                              //Tenemos una lista de ids, que representan nuevos tipos boolean.
                              //tipo1, tipo2 = boolean;
+                             insertar_tipos(ts,ids,new TipoDato("",1,"boolean","definido"));
                              break;
             //--- Tipos Estructurados ---
             case "("       : this.preanalisis++;
                              //--- Enumeracion ---
-                             ArrayList cuerpo_enum=secuencia_ids();
-                             match(")");
-                             
-                             int i;
-                             int n=ids.size();
-                             String lex="";
-                             for(i=0; i<n; i++){
-                                 lex=ids.get(i);
-                                 ts.insertar(lex, new Enumeracion(lex,1,cuerpo_enum));
-                             }
+                             enum_(ts,ids);
                              break;
             case "array"   : this.preanalisis++;
-                             match("[");
-                             //Verificamos si el token actual es digito o identificador.
-                             
-                             match("..");
-                             //Nuevamente verificamos si el token actual es digito o identificador.
-                             
-                             match("]");match("of");
-                             
-                             //tipo_dato(ts,ids);
-                             
+                             arr(ts,ids);
                              break;
             case "record"  : this.preanalisis++;
-                             match("record");
-                             
-                             //r();
-                             
-                             match("end");
+                             reg(ts,ids);                             
                              break;
             default : //--- Subrango ---
-                      token=this.tokens_sintacticos.get(this.preanalisis);
-                      char c=token.get_lexema().charAt(0);
-                      //--- Digito o Identificador ---
-                      if(((int)c>=48 && (int)c<=57) || (((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122))){
-                          this.preanalisis++;
-                          match("..");
-                          
-                          if(((int)c>=48 && (int)c<=57) || (((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122))){
-                              this.preanalisis++;
-                              
-                              //Agregamos el subrango a la TS.
-                              
-                          }else{
-                              System.out.println("Error Sintactico : *** Se esperaba un numero o identificador *** Linea "+token.get_lexema());
-                          }
-                      }else{
-                          System.out.println("Error Sintactico : *** Tipo incompleto *** linea "+token.get_linea_programa());
-                          System.exit(1);
-                          
-                      }
-                      
+                      //No avanzamos preanalisis porque debemos verificar que el token actual sea digito.
+                      sub(ts,ids); //Para poder reusar en la seccion var, si es necesario.
         }
+    }
+    
+    //--- Para reusar en seccion var ---
+    
+    private void enum_ (TablaSimbolos ts, ArrayList<String> ids){
+        ArrayList cuerpo_enum=secuencia_ids();
+        match(")");
+                             
+        insertar_tipos(ts,ids, new Enumeracion("",1,cuerpo_enum));
+    }
+    
+    private void sub (TablaSimbolos ts, ArrayList ids){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        char c=token.get_lexema().charAt(0);
+        String lis="";
+        String lss="";
+        //--- Digito o Identificador ---
+        if(digito(token)){
+            this.preanalisis++;
+            lis=token.get_lexema();
+        }else{
+            //Podemos tener cualquier otro caracter.
+            System.out.println("Error Sintactico : *** Simbolo "+token.get_lexema()+" inesperado *** linea "+token.get_linea_programa());
+            System.exit(1);
+        }
+
+        match("..");
+
+        if(digito(token)){
+            this.preanalisis++;
+            lss=token.get_lexema();
+        }else{
+            System.out.println("Error Sintactico : *** Simbolo "+token.get_lexema()+" inesperado *** linea "+token.get_linea_programa());
+            System.exit(1);
+        }
+
+        insertar_tipos(ts,ids,new Subrango("",1,lis,lss));
+    }
+    
+    //Aqui consideramos el caso de recursion a derecha arr->'array' '[' ']' 'of' resto_arr
+    private void arr (TablaSimbolos ts, ArrayList<String> ids){
+        match("[");
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        //Verificamos si el token actual es digito o identificador.
+        String li="";
+        String ls="";
+        if(digito(token)){
+            this.preanalisis++;//Porque se produce un match.
+            li=token.get_lexema();
+        }else{
+            //Si el token actual no es digito aun no debemos emitir un mensaje de error. 
+            if(identificador(token)){
+                this.preanalisis++;
+            }
+        }
+        match("..");
+        //Nuevamente verificamos si el token actual es digito o identificador.
+        if(digito(token)){
+            this.preanalisis++;
+            ls=token.get_lexema();
+        }else{
+            if(identificador(token)){
+                this.preanalisis++;
+            }
+        }
+        match("]");match("of");
+
+        //Si el arreglo posee recursion a derecha podemos enganchar las diferentes definiciones del
+        //arreglo como tipos estructurados usando la clase Estructurado, de esta manera generamos 
+        //una lista enlazada de definiciones. El ultimo elto de esta lista contiene al tipo raiz.
+        
+        //c : cantidad de elementos del arreglo.
+        //Tipo puede ser estructurado o simple, ambos se determinan arriba.
+        //insertar_tipos(ts,ids,new Arreglo("",1,new Tipo(),c,li,ls));
+    }
+    
+    private void reg (TablaSimbolos ts, ArrayList<String> ids){
+        ArrayList<Parametro> lista_campos=new ArrayList();
+        //r(ts,lista_campos); deberia devolver la lista de campos del registro.
+        
+        match("end");
+        
+        //Evitamos problemas relacionados a la recursion del cuerpo del registro.
+        //insertar_tipos(ts,ids,new Regitro());
+    }
+    
+    //--- Para reusar en seccion var ---
+    
+    private void insertar_tipos (TablaSimbolos ts, ArrayList<String> ids, Simbolo s){
+        int i;
+        int n=ids.size();
+        String lex="";
+        for(i=0; i<n; i++){
+            lex=ids.get(i);
+            //s.set_lexema(lex);
+            ts.insertar(lex, s);
+        }
+    }
+    
+    private boolean digito (Token token){
+        String lex=token.get_lexema();
+        char c=lex.charAt(0);
+        return ((int)c>=48 && (int)c<=57);
     }
     
     private void type_fin (TablaSimbolos ts){
@@ -320,24 +385,55 @@ public class Sintactico {
             type_def(ts);
     }
     
-    private void r (){
-        campo();R();
+    private void r (TablaSimbolos ts, ArrayList<Parametro> lista_campos){
+        //En campo no hay que agregar sus eltos a la ts, porque forman parte de la lista de campos del
+        //registro. Solamente debemos agregar el registro.
+        campo(lista_campos);R(ts,lista_campos);
     }
     
-    private void campo (){
+    private void campo (ArrayList<Parametro> lista_campos){
+        ArrayList<String> ids=secuencia_ids();
+        match(":");
         
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        //Ahora viene el tipo de dato asociado al campo del registro.
+        switch(token.get_lexema()){
+            case "integer" : lista_campos.add(new Parametro(ids,new Simple("integer","integer","primitivo")));
+                             break;
+            case "boolean" : break;
+            case "("       : break;
+            case "array"   : break;
+            case "record"  : break;
+            default : //--- Subrango ---
+                      if(digito(token)){
+                          
+                      }else{
+                          //--- Tipo definido por el usuario ---
+                          if(identificador(token)){
+                              
+                          }
+                      }
+        }
     }
     
-    private void R (){
+    private void R (TablaSimbolos ts, ArrayList<Parametro> lista_campos){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         if(token.get_lexema().equalsIgnoreCase(";")){
-            this.preanalisis++;RP();
+            this.preanalisis++;RP(ts,lista_campos);
         }else
-            ; //Presencia de cadena nula.
+            ;//Presencia de cadena nula.
     }
     
-    private void RP (){
-        
+    private void RP (TablaSimbolos ts, ArrayList<Parametro> lista_campos){
+        //Despues de r debe venir un identificador, si no es asi hacemos uso de la cadena nula.
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        char c=token.get_lexema().charAt(0);
+        if((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(token.get_lexema())){
+            //Si avanzamos preanalisis estamos perdiendo un identificador. Todos los ids se obtienen en
+            //campo.
+            r(ts,lista_campos);
+        }else
+            ; //Presencia de cadena nula.
     }
     
     //-----------------------------------------------------------------------------------
