@@ -11,6 +11,7 @@ package simbolo;
  */
 public class TipoDato extends Simbolo {
     
+    private String nombre_tipo; //Guarda el nombre de tipo, ej: entero, integer, boolean, racional etc.
     private String tipo_base; //Integer o boolean.
     private String caracteristica; //Primitivo o definido por el usuario.
     

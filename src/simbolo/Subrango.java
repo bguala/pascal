@@ -18,6 +18,12 @@ public class Subrango extends Simbolo {
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
+    public Subrango (String li, String ls){
+        super("",1);
+        this.limite_inferior=li;
+        this.limite_superior=ls;
+    }
+    
     public Subrango (String lexema, int espacio_asignado, String li, String ls){
         super(lexema,espacio_asignado);
         this.limite_inferior=li;

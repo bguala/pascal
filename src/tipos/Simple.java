@@ -11,12 +11,18 @@ package tipos;
  */
 public class Simple extends Tipo {
     
-    private String tipo_base; //integer, boolean, racional etc.
-    private String caracteritica; //Primitivo o definido
+    private String tipo_base; //integer, boolean, registro, arreglo etc.
+    private String caracteritica; //Primitivo o definido por el usuario.
         
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
+    
+    public Simple (String nombre_tipo){
+       super(nombre_tipo);
+       this.tipo_base="";
+       this.caracteritica="";
+    }
     
     public Simple (String nombre_tipo, String tipo_base, String caracteristica){
         super(nombre_tipo);

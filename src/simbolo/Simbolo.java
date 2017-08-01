@@ -15,8 +15,13 @@ public abstract class Simbolo {
     protected int espacio_asignado;
     
     //-----------------------------------------------------------------------------------
-    //--- Constructor -------------------------------------------------------------------
+    //--- Constructores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------
+    
+    public Simbolo (){
+        this.lexema="";
+        this.espacio_asignado=1;
+    }
     
     public Simbolo (String lexema, int espacio_asignado){
         this.lexema=lexema;

@@ -6,20 +6,49 @@
 package simbolo;
 
 import tipos.*;
+import java.util.ArrayList;
 /**
  *
  * @author Bruno
  */
 public class Arreglo extends Simbolo {
     
-    private Tipo tipo_dato;
+    private Tipo tipo_dato; //Puede ser Simple("integer"), Simple("racional"), Estructurado(Simbolo) etc.
     private int cantidad_elementos;
     private int limite_inferior;
     private int limite_superior;
+    private ArrayList<Arreglo> lista_definiciones_recursivas;
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
+    
+    public Arreglo (){
+        super("", 1);
+        this.tipo_dato=null;
+        this.cantidad_elementos=0;
+        this.limite_inferior=0;
+        this.limite_superior=0;
+        this.lista_definiciones_recursivas=new ArrayList();
+    }
+    
+    public Arreglo (int c, int li, int ls){
+        super("",1);
+        this.tipo_dato=null;
+        this.cantidad_elementos=c;
+        this.limite_inferior=li;
+        this.limite_superior=ls;
+        this.lista_definiciones_recursivas=new ArrayList();
+    }
+    
+    public Arreglo (Tipo tipo,int c, int li, int ls){
+        super("",1);
+        this.tipo_dato=tipo;
+        this.cantidad_elementos=c;
+        this.limite_inferior=li;
+        this.limite_superior=ls;
+        this.lista_definiciones_recursivas=new ArrayList();
+    }
     
     public Arreglo (String lexema, int espacio_asignado, Tipo tipo_dato, int c, int li, int ls){
         super(lexema,espacio_asignado);
@@ -27,6 +56,7 @@ public class Arreglo extends Simbolo {
         this.cantidad_elementos=c;
         this.limite_inferior=li;
         this.limite_superior=ls;
+        this.lista_definiciones_recursivas=new ArrayList();
     }
     
     //-----------------------------------------------------------------------------------
@@ -49,6 +79,10 @@ public class Arreglo extends Simbolo {
         return this.limite_superior;
     }
     
+    public ArrayList<Arreglo> get_lista_deficiones_recursivas (){
+        return this.lista_definiciones_recursivas;
+    }    
+    
     //-----------------------------------------------------------------------------------
     //--- Modificadores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------
@@ -67,6 +101,10 @@ public class Arreglo extends Simbolo {
     
     public void set_limite_superior (int ls){
         this.limite_superior=ls;
+    }
+    
+    public void set_definicion_recursiva (Arreglo a){
+        this.lista_definiciones_recursivas.add(a);
     }
     
     //-----------------------------------------------------------------------------------

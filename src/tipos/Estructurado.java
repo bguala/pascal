@@ -18,6 +18,11 @@ public class Estructurado extends Tipo{
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
+    public Estructurado (Simbolo s){
+        super("");
+        this.tipo_estructurado=s;
+    }
+    
     public Estructurado (String nombre_tipo, Simbolo s){
         super(nombre_tipo);
         this.tipo_estructurado=s;

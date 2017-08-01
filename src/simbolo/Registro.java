@@ -16,8 +16,13 @@ public class Registro extends Simbolo {
     private ArrayList<Parametro> lista_campos;
     
     //-----------------------------------------------------------------------------------
-    //--- Constructor -------------------------------------------------------------------
+    //--- Constructores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------
+    
+    public Registro (){
+        super();
+        this.lista_campos=new ArrayList();
+    }
     
     public Registro (String lexema, int espacio_asignado){
         super(lexema, espacio_asignado);

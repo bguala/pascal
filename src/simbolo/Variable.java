@@ -20,6 +20,12 @@ public class Variable extends Simbolo {
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
+    public Variable (Tipo tipo_dato){
+        super("",1);
+        this.tipo_dato=tipo_dato;
+        this.dato="";
+    }
+    
     public Variable(String lexema, int espacio_asignado, Tipo tipo_dato){
         super(lexema,espacio_asignado);
         this.tipo_dato=tipo_dato;

@@ -119,54 +119,69 @@ public class Sintactico {
         
         switch(token.get_lexema()){
             
-            case "const" : this.preanalisis++;//C();
+            case "const" : this.preanalisis++;
+                           const_def(ts);
                            token=this.tokens_sintacticos.get(this.preanalisis);
                            switch(token.get_lexema()){
                                
-                               case "type" : this.preanalisis++;//type_def();
+                               case "type" : this.preanalisis++;
+                                             type_def(ts);
                                              token=this.tokens_sintacticos.get(this.preanalisis);
                                              if(token.get_lexema().equalsIgnoreCase("var")){
-                                                 this.preanalisis++;//var_def();
+                                                 this.preanalisis++;
+                                                 //var_def(ts);
                                              }
                                              break;
-                               case "var" : this.preanalisis++;//var_def();
+                               case "var" : this.preanalisis++;
+                                            //var_def();
                                             token=this.tokens_sintacticos.get(this.preanalisis);
                                             if(token.get_lexema().equalsIgnoreCase("type")){
-                                                this.preanalisis++;//type_def();
+                                                this.preanalisis++;
+                                                type_def(ts);
                                             }
                                             break;
                            }
                            break;
-            case "type" : this.preanalisis++;//type_def();
+            case "type" : this.preanalisis++;
+                          type_def(ts);
                           token=this.tokens_sintacticos.get(this.preanalisis);
                           switch(token.get_lexema()){
-                              case "const" : this.preanalisis++;//const_def();
+                              case "const" : this.preanalisis++;
+                                             const_def(ts);
                                              token=this.tokens_sintacticos.get(this.preanalisis);
                                              if(token.get_lexema().equalsIgnoreCase("var")){
-                                                 this.preanalisis++;//var_def();
+                                                 this.preanalisis++;
+                                                 //var_def();
                                              }
                                              break;
-                              case "var" : this.preanalisis++;//var_def();
+                              case "var" : this.preanalisis++;
+                                           //var_def();
                                            token=this.tokens_sintacticos.get(this.preanalisis);
                                            if(token.get_lexema().equalsIgnoreCase("const")){
-                                               this.preanalisis++;//const_def();
+                                               this.preanalisis++;
+                                               const_def(ts);
                                            }
                                            break;
                           }
                           break;
-            case "var" : this.preanalisis++;//var_def();
+            case "var" : this.preanalisis++;
+                         //var_def();
                          token=this.tokens_sintacticos.get(this.preanalisis);
                          switch(token.get_lexema()){
-                             case "const" : this.preanalisis++;//const_def();
+                             case "const" : this.preanalisis++;
+                                            const_def(ts);
                                             token=this.tokens_sintacticos.get(this.preanalisis);
                                             if(token.get_lexema().equalsIgnoreCase("type")){
-                                                this.preanalisis++;//type_def();
+                                                this.preanalisis++;
+                                                type_def(ts);
                                             }
                                             break;
-                             case "type" : this.preanalisis++;//type_def();
+                             case "type" : this.preanalisis++;
+                                           type_def(ts);
                                            token=this.tokens_sintacticos.get(this.preanalisis);
                                            if(token.get_lexema().equalsIgnoreCase("const")){
-                                               this.preanalisis++;//type_def();
+                                               this.preanalisis++;
+                                               const_def(ts);
                                            }
                                            break;
                          }
@@ -209,10 +224,10 @@ public class Sintactico {
     }
     
     private void const_def (TablaSimbolos ts){
-        constante(ts);match(";");c1(ts);
+        constante(ts);match(";");const_fin(ts);
     }
     
-    private void c1 (TablaSimbolos ts){
+    private void const_fin (TablaSimbolos ts){
         if(this.palabras_reservadas.contains(this.tokens_sintacticos.get(this.preanalisis).get_lexema()))
             ; //Presencia de cadena nula.
         else
@@ -231,7 +246,6 @@ public class Sintactico {
         String id="";
         for(i=0; i<n; i++){
             id=(String)ids.get(i);
-            
             ts.insertar(id, new Constante(id,1,dato));
         }
     }
@@ -250,12 +264,12 @@ public class Sintactico {
             //--- Tipos Primitivos ---
             case "integer" : this.preanalisis++;
                              //Tenemos una lista de ids, que representan nuevos tipos integer.
-                             //tipo1, tipo2 = integer;
+                             //Ej: tipo1, tipo2 = integer;
                              insertar_tipos(ts,ids,new TipoDato("",1,"integer","definido"));
                              break;
             case "boolean" : this.preanalisis++;
                              //Tenemos una lista de ids, que representan nuevos tipos boolean.
-                             //tipo1, tipo2 = boolean;
+                             //Ej: tipo1, tipo2 = boolean;
                              insertar_tipos(ts,ids,new TipoDato("",1,"boolean","definido"));
                              break;
             //--- Tipos Estructurados ---
@@ -264,14 +278,21 @@ public class Sintactico {
                              enum_(ts,ids);
                              break;
             case "array"   : this.preanalisis++;
-                             arr(ts,ids);
+                             Arreglo a=new Arreglo();
+                             //Agrega datos al arreglo necesarios para hacer chequeos de tipo.
+                             completar_arreglo(a);
+                             //Pueden haber definiciones recursivas de arreglos.
+                             agregar_tipo(a);
+                             //Guardamos los nuevos tipos en la ts.
+                             insertar_tipos(ts,ids,a);
                              break;
             case "record"  : this.preanalisis++;
                              reg(ts,ids);                             
                              break;
             default : //--- Subrango ---
                       //No avanzamos preanalisis porque debemos verificar que el token actual sea digito.
-                      sub(ts,ids); //Para poder reusar en la seccion var, si es necesario.
+                      //Si el token actual es digito posiblemente estamos en presencia de un subrango.
+                      sub(ts,ids);
         }
     }
     
@@ -286,10 +307,9 @@ public class Sintactico {
     
     private void sub (TablaSimbolos ts, ArrayList ids){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
-        char c=token.get_lexema().charAt(0);
         String lis="";
         String lss="";
-        //--- Digito o Identificador ---
+        //--- Digito ---
         if(digito(token)){
             this.preanalisis++;
             lis=token.get_lexema();
@@ -301,6 +321,7 @@ public class Sintactico {
 
         match("..");
 
+        //--- Digito ---
         if(digito(token)){
             this.preanalisis++;
             lss=token.get_lexema();
@@ -312,18 +333,18 @@ public class Sintactico {
         insertar_tipos(ts,ids,new Subrango("",1,lis,lss));
     }
     
-    //Aqui consideramos el caso de recursion a derecha arr->'array' '[' ']' 'of' resto_arr
-    private void arr (TablaSimbolos ts, ArrayList<String> ids){
+    private void completar_arreglo (Arreglo a){
         match("[");
         Token token=this.tokens_sintacticos.get(this.preanalisis);
-        //Verificamos si el token actual es digito o identificador.
         String li="";
         String ls="";
+        //Verificamos si el token actual es digito o identificador.
         if(digito(token)){
-            this.preanalisis++;//Porque se produce un match.
+            this.preanalisis++;//Avanzamos preanalisis porque se produce un match.
             li=token.get_lexema();
         }else{
-            //Si el token actual no es digito aun no debemos emitir un mensaje de error. 
+            //Si el token actual no es digito aun no debemos emitir un mensaje de error. Podriamos tener
+            //array [ const1 .. const2 ].
             if(identificador(token)){
                 this.preanalisis++;
             }
@@ -340,23 +361,117 @@ public class Sintactico {
         }
         match("]");match("of");
 
-        //Si el arreglo posee recursion a derecha podemos enganchar las diferentes definiciones del
-        //arreglo como tipos estructurados usando la clase Estructurado, de esta manera generamos 
-        //una lista enlazada de definiciones. El ultimo elto de esta lista contiene al tipo raiz.
+        //Completamos parte del arreglo.
+        a.set_limite_inferior(Integer.parseInt(li));
+        a.set_limite_superior(Integer.parseInt(ls));
+        a.set_cantidad_elementos(1);
         
-        //c : cantidad de elementos del arreglo.
-        //Tipo puede ser estructurado o simple, ambos se determinan arriba.
-        //insertar_tipos(ts,ids,new Arreglo("",1,new Tipo(),c,li,ls));
+    }
+    
+    //Agrega el tipo de dato asociado a un arreglo. Antes de conocer el tipo de un arreglo pueden aparecer
+    //otras definiciones de arreglo.
+    private void agregar_tipo (Arreglo a){
+        //Ahora analizamos el tipo de dato de los eltos del arreglo.
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        switch(token.get_lexema()){
+            //--- Tipos Primitivos ---
+            case "integer" : this.preanalisis++;
+                             a.set_tipo_dato(new Simple("integer","integer","primitivo"));
+                             break;
+            case "boolean" : this.preanalisis++;
+                             a.set_tipo_dato(new Simple("boolean","boolean","primitivo"));
+                             break;
+            //--- Tipos Estructurados ---
+            case "("       : this.preanalisis++;
+                             //--- Enumeracion ---
+                             ArrayList<String> cuerpo_enum=secuencia_ids();
+                             match(")");
+                             a.set_tipo_dato(new Estructurado("",new Enumeracion("",1,cuerpo_enum)));
+                             break;
+            case "array"   : this.preanalisis++;
+                             //El arreglo posee definiciones recursivas a derecha.
+                             match("[");
+                             token=this.tokens_sintacticos.get(this.preanalisis);
+                             String li="";
+                             String ls="";
+                             //Verificamos si el token actual es digito o identificador.
+                             if(digito(token)){
+                                 this.preanalisis++;//Avanzamos preanalisis porque se produce un match.
+                                 li=token.get_lexema();
+                             }else{
+                                 //Si el token actual no es digito aun no debemos emitir un mensaje de error. Podriamos tener
+                                 //array [ const1 .. const2 ].
+                                 if(identificador(token)){
+                                     this.preanalisis++;
+                                 }
+                             }
+                             match("..");
+                             //Nuevamente verificamos si el token actual es digito o identificador.
+                             if(digito(token)){
+                                 this.preanalisis++;
+                                 ls=token.get_lexema();
+                             }else{
+                                 if(identificador(token)){
+                                     this.preanalisis++;
+                                 }
+                             }
+                             match("]");match("of");
+                             
+                             //Creamos un nuevo arreglo y lo guardamos en la lista de definiciones rec.
+                             a.set_definicion_recursiva(new Arreglo(0,Integer.parseInt(li),Integer.parseInt(ls)));
+                             
+                             //LLamamos recursivamente para saber si existen nuevas definiciones recursivas. Caso
+                             //contrario agregamos el tipo de dato al arreglo.
+                             agregar_tipo(a);
+                             
+                             break;
+            case "record"  : this.preanalisis++;//En este momento nos debemos encontar con un identificador.
+                             Registro registro=new Registro();
+                             
+                             //r agrega los campos al objeto registro. 
+                             r(registro);
+
+                             match("end");
+                             
+                             //El nuevo registro creado representa el tipo asociado a los eltos. del arreglo.
+                             a.set_tipo_dato(new Estructurado("",registro));
+                             break;
+            default : //--- Subrango ---
+                      //No avanzamos preanalisis porque debemos verificar que el token actual sea digito.
+                      token=this.tokens_sintacticos.get(this.preanalisis);
+                      if(digito(token)){
+                          String lis=token.get_lexema();
+                          this.preanalisis++;
+                          
+                          match("..");
+                          
+                          token=this.tokens_sintacticos.get(this.preanalisis);
+                          if(digito(token)){
+                              String lss=token.get_lexema();
+                              this.preanalisis++;
+                              
+                              a.set_tipo_dato(new Estructurado("",new Subrango("",1,lis,lss)));
+                          }
+                      }else{
+                          //--- Tipo definido por el usuario ---
+                          if(identificador(token)){
+                              this.preanalisis++;
+                              a.set_tipo_dato(new Simple(token.get_lexema()));
+                          }
+                      }
+        }
     }
     
     private void reg (TablaSimbolos ts, ArrayList<String> ids){
-        ArrayList<Parametro> lista_campos=new ArrayList();
-        //r(ts,lista_campos); deberia devolver la lista de campos del registro.
+        //Creamos un objeto Registro para guardar en el mismo todos sus campos, que pueden ser de tipo
+        //integer o boolean.
+        Registro reg_principal=new Registro();
+        
+        r(reg_principal);
         
         match("end");
         
-        //Evitamos problemas relacionados a la recursion del cuerpo del registro.
-        //insertar_tipos(ts,ids,new Regitro());
+        insertar_tipos(ts,ids,reg_principal);
     }
     
     //--- Para reusar en seccion var ---
@@ -380,60 +495,157 @@ public class Sintactico {
     
     private void type_fin (TablaSimbolos ts){
         if(this.palabras_reservadas.contains(this.tokens_sintacticos.get(this.preanalisis).get_lexema()))
-            ; //Presencia de cadena nula.
+            ; //Presencia de cadena nula si el simbolo actual es una palabra reservada. Despues de la 
+        //seccion type pueden aparecer var, const, function, procedure o begind. En caso de error 
+        //sintactico puede aparecer cualquier otra. De todas formas debemos finalizar la ejecucion de 
+        //type_def. No es responsabilidad de type_def emitir un mensaje de error.
         else
             type_def(ts);
     }
     
-    private void r (TablaSimbolos ts, ArrayList<Parametro> lista_campos){
-        //En campo no hay que agregar sus eltos a la ts, porque forman parte de la lista de campos del
-        //registro. Solamente debemos agregar el registro.
-        campo(lista_campos);R(ts,lista_campos);
+    private void r (Registro reg_principal){
+        campo(reg_principal);R(reg_principal);
     }
     
-    private void campo (ArrayList<Parametro> lista_campos){
+    private void campo (Registro reg_principal){
         ArrayList<String> ids=secuencia_ids();
         match(":");
         
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         //Ahora viene el tipo de dato asociado al campo del registro.
         switch(token.get_lexema()){
-            case "integer" : lista_campos.add(new Parametro(ids,new Simple("integer","integer","primitivo")));
+            case "integer" : this.preanalisis++;
+                             reg_principal.agregar_parametro(new Parametro(ids,new Simple("integer","integer","primitivo")));
                              break;
-            case "boolean" : break;
-            case "("       : break;
-            case "array"   : break;
-            case "record"  : break;
+            case "boolean" : this.preanalisis++;
+                             reg_principal.agregar_parametro(new Parametro(ids,new Simple("boolean","boolean","primitivo")));
+                             break;
+            case "("       : //this.preanalisis++;
+                             //ArrayList<String> cuerpo_enum=secuencia_ids();
+                             //match(")");
+                             //reg_principal.agregar_parametro(new Parametro(ids,new Estructurado("",new Enumeracion("",1,cuerpo_enum))));
+                             System.out.println("Error Sintactico : *** No se admiten campos de tipo Enumeracion *** Linea "+token.get_linea_programa());
+                             System.exit(1);
+                             break;
+            case "array"   : 
+                             //break;
+            case "record"  : //this.preanalisis++;
+                             //Registro reg_anidado=new Registro();
+                             //r(reg_anidado);
+                             //reg_principal.agregar_parametro(new Parametro(ids,new Estructurado("",reg_anidado)));
+                             System.out.println("Error Sintactico : *** No se admiten campos de tipo "+token.get_lexema()+" *** Linea "+token.get_linea_programa());
+                             System.exit(1);
+                             break;
             default : //--- Subrango ---
                       if(digito(token)){
-                          
+//                          token=this.tokens_sintacticos.get(this.preanalisis);
+//                          String li=token.get_lexema();
+//                          this.preanalisis++;
+//                          match("..");
+//                          
+//                          if(digito(token)){
+//                              token=this.tokens_sintacticos.get(this.preanalisis);
+//                              String ls=token.get_lexema();
+//                              this.preanalisis++;
+//                              reg_principal.agregar_parametro(new Parametro(ids,new Estructurado("",new Subrango("",1,li,ls))));
+//                          }else{
+//                              System.out.println("Error Sintactico : *** ***");
+//                              System.exit(1);
+//                          }
+                            System.out.println("Error Sintactico : *** No se admiten campos de tipo Subrango *** Linea "+token.get_linea_programa());
+                            System.exit(1);
                       }else{
                           //--- Tipo definido por el usuario ---
                           if(identificador(token)){
-                              
+                              System.out.println("Error Sintactico : *** Tipo de dato "+token.get_lexema()+" inesperado *** Linea "+token.get_linea_programa());
+                              System.exit(1);
                           }
                       }
         }
     }
     
-    private void R (TablaSimbolos ts, ArrayList<Parametro> lista_campos){
+    private void R (Registro reg_principal){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         if(token.get_lexema().equalsIgnoreCase(";")){
-            this.preanalisis++;RP(ts,lista_campos);
+            this.preanalisis++;
+            
+            //Despues de r debe venir un identificador, si no es asi, hacemos uso de la cadena nula.
+            token=this.tokens_sintacticos.get(this.preanalisis);
+            char c=token.get_lexema().charAt(0);
+            //Si el simbolo actual es un identificador y no se corresponde con una palabra reservada
+            //significa que estamos en presencia de un nuevo campo del registro.
+            if((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(token.get_lexema())){
+                //Si avanzamos preanalisis estamos perdiendo un identificador. Todos los ids se obtienen en
+                //campo(reg).
+                r(reg_principal);
+            }else
+                ; //Presencia de cadena nula. La proxima palabra reservada debe ser 'end'.
         }else
-            ;//Presencia de cadena nula.
+            ;//Presencia de cadena nula. La proxima palabra reservada debe ser 'end'.
     }
     
-    private void RP (TablaSimbolos ts, ArrayList<Parametro> lista_campos){
-        //Despues de r debe venir un identificador, si no es asi hacemos uso de la cadena nula.
+    private void var_def (TablaSimbolos ts){
+        variable(ts);match(";");var_fin(ts);
+    }
+    
+    private void variable (TablaSimbolos ts){
+        ArrayList<String> ids=secuencia_ids();
+        match(":");
+        
         Token token=this.tokens_sintacticos.get(this.preanalisis);
-        char c=token.get_lexema().charAt(0);
-        if((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(token.get_lexema())){
-            //Si avanzamos preanalisis estamos perdiendo un identificador. Todos los ids se obtienen en
-            //campo.
-            r(ts,lista_campos);
-        }else
-            ; //Presencia de cadena nula.
+        
+        switch(token.get_lexema()){
+            //--- Primitivos ---
+            case "integer" : this.preanalisis++;
+                             insertar_tipos(ts,ids,new Variable(new Simple("","integer","primitivo")));
+                             break;
+            case "boolean" : this.preanalisis++;
+                             insertar_tipos(ts,ids,new Variable(new Simple("","boolean","primitivo")));
+                             break;
+            //--- Estructurados ---
+            case "("       : this.preanalisis++;
+                             ArrayList<String> cuerpo_enum=secuencia_ids();
+                             match(")");
+                             insertar_tipos(ts,ids,new Variable(new Estructurado("",new Enumeracion(cuerpo_enum))));
+                             break;
+            case "array"   : this.preanalisis++;
+                             
+                             break;
+            case "record"  : this.preanalisis++;
+                             
+                             break;
+            default : //--- Subrango ---
+                      if(digito(token)){
+                          String lis=token.get_lexema();
+                          this.preanalisis++;
+                          
+                          match("..");
+                          
+                          token=this.tokens_sintacticos.get(this.preanalisis);
+                          if(digito(token)){
+                              String lss=token.get_lexema();
+                              this.preanalisis++;
+                              
+                              insertar_tipos(ts,ids,new Variable(new Estructurado(new Subrango(lis,lss))));
+                          }
+                          
+                      }else{
+                          //--- Tipo definido por el usuario ---
+                          if(identificador(token)){
+                              this.preanalisis++;
+                              insertar_tipos(ts,ids,new Variable(new Simple(token.get_lexema())));
+                          }
+                      }
+        }
+    }
+    
+    private void var_fin (TablaSimbolos ts){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        if(this.palabras_reservadas.contains(token.get_lexema()))
+            ;//Presencia de cadena nula.
+        else
+            var_def(ts);
     }
     
     //-----------------------------------------------------------------------------------
@@ -546,5 +758,9 @@ public class Sintactico {
     private void K (){
         
     }
+    
+    //-----------------------------------------------------------------------------------
+    //--- Otras Sentencias --------------------------------------------------------------
+    //-----------------------------------------------------------------------------------
     
 }

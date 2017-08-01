@@ -19,6 +19,11 @@ public class Enumeracion extends Simbolo {
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
+    public Enumeracion (ArrayList<String> cuerpo_enum){
+        super("",1);
+        this.lista_identificadores=cuerpo_enum;
+    }
+    
     public Enumeracion (String lexema, int espacio_asignado){
         super(lexema, espacio_asignado);
         this.lista_identificadores=new ArrayList ();
