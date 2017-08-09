@@ -566,7 +566,7 @@ public class Sintactico {
     
     private void R (Registro reg_principal){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
-        if(token.get_lexema().equalsIgnoreCase(";")){
+        if(token.get_lexema().equalsIgnoreCase(";")){//Es la coma que separa los campos del registro.
             this.preanalisis++;
             
             //Despues de r debe venir un identificador, si no es asi, hacemos uso de la cadena nula.
@@ -583,7 +583,7 @@ public class Sintactico {
         }else
             ;//Presencia de cadena nula. La proxima palabra reservada debe ser 'end'.
     }
-    
+        
     private void var_def (TablaSimbolos ts){
         variable(ts);match(";");var_fin(ts);
     }
@@ -609,10 +609,18 @@ public class Sintactico {
                              insertar_tipos(ts,ids,new Variable(new Estructurado("",new Enumeracion(cuerpo_enum))));
                              break;
             case "array"   : this.preanalisis++;
-                             
+                             Arreglo a=new Arreglo();
+                             //Agrega datos al arreglo necesarios para hacer chequeos de tipo.
+                             completar_arreglo(a);
+                             //Pueden haber definiciones recursivas de arreglos.
+                             agregar_tipo(a);
+                             //Guardamos los nuevos tipos en la ts.
+                             insertar_tipos(ts,ids,new Variable(new Estructurado("",a)));
                              break;
             case "record"  : this.preanalisis++;
-                             
+                             Registro registro=new Registro();
+                             r(registro);
+                             insertar_tipos(ts,ids,new Variable(new Estructurado("",registro)));
                              break;
             default : //--- Subrango ---
                       if(digito(token)){
@@ -642,6 +650,7 @@ public class Sintactico {
     private void var_fin (TablaSimbolos ts){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         
+        //Las palabras reservadas pueden ser const, type, function, procedure o begin.
         if(this.palabras_reservadas.contains(token.get_lexema()))
             ;//Presencia de cadena nula.
         else
@@ -656,11 +665,183 @@ public class Sintactico {
     //--- Bloque ------------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
+    private void bloque (TablaSimbolos ts){
+        match("begin");
+        S(ts);
+        match("end");
+    }
+    
+    private void S (TablaSimbolos ts){
+        sentencia(ts);S1(ts);
+    }
+    
+    private void S1 (TablaSimbolos ts){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        if(token.get_lexema().equalsIgnoreCase(";")){
+            this.preanalisis++;
+            token=this.tokens_sintacticos.get(this.preanalisis);
+            
+            if(token.get_lexema().equalsIgnoreCase("end"))
+                ; //Presencia de cadena nula. S11 deriva en landa.
+            else
+                S(ts);
+        }else
+            ; //Presencia de cadena nula. S1 deriva en landa.
+    }
+    
+    private void sentencia (TablaSimbolos ts){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        switch(token.get_lexema()){
+            case "if"     : this.preanalisis++;
+                            alternativa(ts);
+                            break;
+            case "while"  : this.preanalisis++;
+                            repetitiva(ts);
+                            break;
+            case "case"   : this.preanalisis++;
+                            seleccion_multiple(ts);
+                            break;
+            case "read"   : this.preanalisis++;
+                            //read();
+                            break;
+            case "write"  : this.preanalisis++;
+                            //write();
+                            break;
+            case "succ"   : this.preanalisis++;
+                            //succ();
+                            break;
+            case "pred"   : this.preanalisis++;
+                            //pred();
+                            break;
+            //--- Identificador ---
+            default : if(identificador(token)){
+                this.preanalisis++;
+                token=this.tokens_sintacticos.get(this.preanalisis);
+                
+                switch(token.get_lexema()){
+                    case ":=" : this.preanalisis++;
+                                //cuerpo_asignacion();
+                                break;
+                    case "("  : this.preanalisis++;
+                                //L1();
+                                break;
+                }
+            }
+                
+        }
+    }
+    
+    private void alternativa (TablaSimbolos ts){
+        expresion(ts);match("then");
+        
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        if(token.get_lexema().equalsIgnoreCase("begin")){ //Presencia de un bloque.
+            this.preanalisis++;
+            bloque(ts);
+        }else
+            sentencia(ts);
+        
+        token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        if(token.get_lexema().equalsIgnoreCase("else")){
+            this.preanalisis++;
+            token=this.tokens_sintacticos.get(this.preanalisis);
+            
+            if(token.get_lexema().equalsIgnoreCase("begin")){
+                this.preanalisis++;
+                bloque(ts);
+            }else
+                sentencia(ts);
+        }else
+            ; //Presencia de cadena nula. Significa que no hay bloque else.
+    }
+    
+    private void repetitiva (TablaSimbolos ts){
+        expresion(ts);match("do");
+        
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        if(token.get_lexema().equalsIgnoreCase("begin")){
+            this.preanalisis++;
+            bloque(ts);
+        }else
+            sentencia(ts);
+    }
+    
+    private void seleccion_multiple (TablaSimbolos ts){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        if(digito(token))
+            this.preanalisis++;
+        else
+            if(identificador(token))
+                this.preanalisis++;
+            
+        match("of");
+        
+        opciones(ts);
+        
+        token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        if(token.get_lexema().equalsIgnoreCase("else")){
+            this.preanalisis++;
+            token=this.tokens_sintacticos.get(this.preanalisis);
+            
+            if(token.get_lexema().equalsIgnoreCase("begin")){
+                this.preanalisis++;
+                bloque(ts);
+            }else
+                sentencia(ts);
+        }else
+            ; //Presencia de cadena nula. No hay bloque else.
+    }
+    
+    private void opciones (TablaSimbolos ts){
+        opcion(ts);op(ts);
+    }
+    
+    private void opcion (TablaSimbolos ts){
+        match(":");
+        
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        if(token.get_lexema().equalsIgnoreCase("begin")){
+            this.preanalisis++;
+            bloque(ts);
+        }else
+            sentencia(ts);
+    }
+    
+    private void op (TablaSimbolos ts){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        if(token.get_lexema().equalsIgnoreCase(";")){
+            this.preanalisis++;
+            token=this.tokens_sintacticos.get(this.preanalisis);
+            if(digito(token)){
+                this.preanalisis++;
+                opciones(ts);
+            }else{
+                token=this.tokens_sintacticos.get(this.preanalisis);
+                char c=token.get_lexema().charAt(0);
+                if((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(token.get_lexema())){
+                    this.preanalisis++;
+                    opciones(ts);
+                }else
+                    ; //Presencia de cadena nula. No hay mas opciones en el cuerpo del case.
+            }
+        }else
+            ; //Presencia de cadena nula. Determina el fin de las opciones del case.
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- Expresiones -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    private void expresion (){
+    private void expresion (TablaSimbolos ts){
         T();E1();
     }
     
