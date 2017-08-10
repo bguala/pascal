@@ -666,7 +666,7 @@ public class Sintactico {
     //-----------------------------------------------------------------------------------
     
     private void bloque (TablaSimbolos ts){
-        match("begin");
+        match("begin");//Se puede sacar.
         S(ts);
         match("end");
     }
@@ -704,10 +704,10 @@ public class Sintactico {
                             seleccion_multiple(ts);
                             break;
             case "read"   : this.preanalisis++;
-                            //read();
+                            read();
                             break;
             case "write"  : this.preanalisis++;
-                            //write();
+                            write();
                             break;
             case "succ"   : this.preanalisis++;
                             //succ();
@@ -837,6 +837,120 @@ public class Sintactico {
             ; //Presencia de cadena nula. Determina el fin de las opciones del case.
     }
     
+    private void read (){
+        match("(");
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        if(identificador(token))
+            this.preanalisis++;
+        
+        match(")");
+    }
+    
+    private void write (){
+        match("(");
+        
+        exp();
+        
+        match(")");
+    }
+    
+    private void exp (){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        char c;
+        
+        //--- Posible expresion ---
+        switch(token.get_lexema()){
+            case "-"   : //--- Expresion con - unario ---
+            case "not" : //--- Expresion booleana que empieza con not ---
+            case "("   : //--- Expresion parentizada ---
+                         //expresion();
+                         break;
+            default :
+                        c=token.get_lexema().charAt(0);
+                        //--- Identificador ---
+                        if((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(token.get_lexema())){
+                            this.preanalisis++;
+                            token=this.tokens_sintacticos.get(this.preanalisis);
+
+                            switch(token.get_lexema()){
+                                case "(" : //--- Llamada a Subprograma ---
+                                           this.preanalisis++;
+                                           //L1();
+                                           break;
+                                case "." : //--- Acceso a registro ---
+                                           this.preanalisis++;
+                                           token=this.tokens_sintacticos.get(this.preanalisis);
+                                           if(identificador(token))
+                                               this.preanalisis++;
+                                           break;
+                                case "[" : //--- Acceso a arreglo ---
+                                           this.preanalisis++;
+                                           token=this.tokens_sintacticos.get(this.preanalisis);
+
+                                           if(digito(token))
+                                               this.preanalisis++;
+                                           else{
+                                               if(identificador(token))
+                                                   this.preanalisis++;
+                                           }
+
+                                           //Si el arreglo posee dos dimensiones :
+                                           //nombre[ fila, columna ]
+
+                                           match("]");
+                                           break;
+
+                                default : ; //Presencia de cadena nula. Solamente tenemos un identificador.
+                            }
+                        }else{
+                            if(digito(token)){
+                                this.preanalisis++;
+                                token=this.tokens_sintacticos.get(this.preanalisis);
+
+                                //--- Posible expresion ---
+                                switch(token.get_lexema()){
+                                    case "+"    : 
+                                    case "-"    : 
+                                    case "*"    :
+                                    case "/"    :
+                                    case "<"    :
+                                    case ">"    :
+                                    case "<="   :
+                                    case ">="   :
+                                    case "<>"   :
+                                    case "and"  :
+                                    case "or"   : //Disminuimos preanalisis para no alterar la ejecucion de expresion
+                                                  //porque antes de consumir el proximo simbolo se ejecutan varias 
+                                                  //llamadas a funciones.
+                                                  this.preanalisis--;
+                                                  //expresion();
+                                                  break;
+                                    default : ; //Presencia de cadena nula.
+                                }
+
+                            }else
+                                ; //Presencia de cadena nula. Solamente tenemos un identificador.
+                        }
+        }
+    }
+        
+    private void secc (){
+        match("(");
+        
+        exp();
+        
+        match(")");
+    }
+    
+    private void pred (){
+        match("(");
+        
+        exp();
+        
+        match(")");
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- Expresiones -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
@@ -937,7 +1051,26 @@ public class Sintactico {
     }
     
     private void K (){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
         
+        if(token.get_lexema().equalsIgnoreCase("(")){
+            //expresion();
+            match(")");
+        }else{
+            if(digito(token)){
+                this.preanalisis++;
+            }else{
+                if(identificador(token)){
+                    token=this.tokens_sintacticos.get(this.preanalisis);
+                    
+                    //--- Llamada a Subprograma ---
+                    if(token.get_lexema().equalsIgnoreCase("(")){
+                        //L1();
+                    }else
+                        ; //Presencia de cadena nula. Solamente tenemos un identificador.
+                }
+            }
+        }
     }
     
     //-----------------------------------------------------------------------------------
