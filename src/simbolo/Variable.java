@@ -5,28 +5,26 @@
  */
 package simbolo;
 
-import tipos.*;
-
 /**
  *
  * @author Bruno
  */
 public class Variable extends Simbolo {
     
-    private Tipo tipo_dato;
+    private Simbolo tipo_dato;
     private String dato;
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Variable (Tipo tipo_dato){
+    public Variable (Simbolo tipo_dato){
         super("",1);
         this.tipo_dato=tipo_dato;
         this.dato="";
     }
     
-    public Variable(String lexema, int espacio_asignado, Tipo tipo_dato){
+    public Variable(String lexema, int espacio_asignado, Simbolo tipo_dato){
         super(lexema,espacio_asignado);
         this.tipo_dato=tipo_dato;
         this.dato="";
@@ -36,7 +34,7 @@ public class Variable extends Simbolo {
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Tipo get_tipo_dato (){
+    public Simbolo get_tipo_dato (){
         return this.tipo_dato;
     }
     
@@ -48,7 +46,7 @@ public class Variable extends Simbolo {
     //--- Modificadores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public void set_tipo_dato (Tipo tipo_dato){
+    public void set_tipo_dato (Simbolo tipo_dato){
         this.tipo_dato=tipo_dato;
     }
     

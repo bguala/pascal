@@ -5,15 +5,15 @@
  */
 package simbolo;
 
-import tipos.*;
 import java.util.ArrayList;
+
 /**
  *
  * @author Bruno
  */
 public class Arreglo extends Simbolo {
     
-    private Tipo tipo_dato; //Puede ser Simple("integer"), Simple("racional"), Estructurado(Simbolo) etc.
+    private Simbolo tipo_dato; //Puede ser Simple("integer"), Simple("racional"), Estructurado(Simbolo) etc.
     private int cantidad_elementos;
     private int limite_inferior;
     private int limite_superior;
@@ -41,7 +41,7 @@ public class Arreglo extends Simbolo {
         this.lista_definiciones_recursivas=new ArrayList();
     }
     
-    public Arreglo (Tipo tipo,int c, int li, int ls){
+    public Arreglo (Simbolo tipo,int c, int li, int ls){
         super("",1);
         this.tipo_dato=tipo;
         this.cantidad_elementos=c;
@@ -50,7 +50,7 @@ public class Arreglo extends Simbolo {
         this.lista_definiciones_recursivas=new ArrayList();
     }
     
-    public Arreglo (String lexema, int espacio_asignado, Tipo tipo_dato, int c, int li, int ls){
+    public Arreglo (String lexema, int espacio_asignado, Simbolo tipo_dato, int c, int li, int ls){
         super(lexema,espacio_asignado);
         this.tipo_dato=tipo_dato;
         this.cantidad_elementos=c;
@@ -63,7 +63,7 @@ public class Arreglo extends Simbolo {
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Tipo get_tipo_dato (){
+    public Simbolo get_tipo_dato (){
         return this.tipo_dato;
     }
     
@@ -87,7 +87,7 @@ public class Arreglo extends Simbolo {
     //--- Modificadores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public void set_tipo_dato (Tipo tipo_dato){
+    public void set_tipo_dato (Simbolo tipo_dato){
         this.tipo_dato=tipo_dato;
     }
     

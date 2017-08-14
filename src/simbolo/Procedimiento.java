@@ -24,6 +24,11 @@ public class Procedimiento extends Simbolo {
         this.lista_parametros=new ArrayList ();
     }
     
+    public Procedimiento (String lexema, int espacio_asignado, ArrayList<Parametro> params){
+        super(lexema,espacio_asignado);
+        this.lista_parametros=params;
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------

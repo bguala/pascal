@@ -6,8 +6,6 @@
 package simbolo;
 
 import java.util.ArrayList;
-import java.util.Iterator;
-import tipos.*;
 
 /**
  *
@@ -17,7 +15,7 @@ public class Funcion extends Simbolo {
     
     private ArrayList<Parametro> lista_parametros;
     private String pasaje_parametro;
-    private Tipo tipo_retorno;
+    private Simbolo tipo_retorno; //Puede ser integer, boolean u otro tipo definido por el usuario.
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
@@ -28,6 +26,13 @@ public class Funcion extends Simbolo {
         this.pasaje_parametro="valor";
         this.tipo_retorno=null;
         this.lista_parametros=new ArrayList();
+    }
+    
+    public Funcion (String lexema, int espacio_asignado, Simbolo tipo_retorno, ArrayList<Parametro> params){
+        super(lexema,espacio_asignado);
+        this.pasaje_parametro="valor";
+        this.tipo_retorno=tipo_retorno;
+        this.lista_parametros=params;
     }
     
     //-----------------------------------------------------------------------------------
@@ -42,7 +47,7 @@ public class Funcion extends Simbolo {
         return this.pasaje_parametro;
     }
     
-    public Tipo get_tipo_retorno (){
+    public Simbolo get_tipo_retorno (){
         return this.tipo_retorno;
     }
     
@@ -58,7 +63,7 @@ public class Funcion extends Simbolo {
         this.pasaje_parametro=pasaje_parametro;
     }
        
-    public void set_tipo_retorno(Tipo retorno){
+    public void set_tipo_retorno(Simbolo retorno){
         this.tipo_retorno=retorno;
     }
     

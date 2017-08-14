@@ -6,7 +6,6 @@
 package simbolo;
 
 import java.util.ArrayList;
-import tipos.*;
 
 /**
  *
@@ -15,13 +14,13 @@ import tipos.*;
 public class Parametro {
     
     private ArrayList<String> parametro_formal;//Contiene listas de identifiadores id1, id2, id3 etc.
-    private Tipo tipo_dato;
+    private Simbolo tipo_dato;
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Parametro (ArrayList<String> parametro_formal, Tipo tipo_dato){
+    public Parametro (ArrayList<String> parametro_formal, Simbolo tipo_dato){
         this.parametro_formal=parametro_formal;
         this.tipo_dato=tipo_dato;
     }
@@ -34,7 +33,7 @@ public class Parametro {
         return this.parametro_formal;
     }
         
-    public Tipo get_tipo_dato (){
+    public Simbolo get_tipo_dato (){
         return this.tipo_dato;
     }
     
@@ -46,7 +45,7 @@ public class Parametro {
         this.parametro_formal=parametros_formales;
     }
     
-    public void set_tipo_dato (Tipo tipo){
+    public void set_tipo_dato (Simbolo tipo){
         this.tipo_dato=tipo;
     }
     
