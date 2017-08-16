@@ -37,7 +37,7 @@ public class Pascal {
                     case 'l' : lexico=new Lexico(archivo);
                                lexico.analisis_lexico();
                                lexico.guardar_tokens();
-                               System.out.println("\n\n Analisis lexico exitoso \n\n");
+                               System.out.println("\n *** Analisis lexico exitoso *** \n");
                                break;
                     case 's' : lexico=new Lexico(archivo);
                                lexico.analisis_lexico();
@@ -46,7 +46,7 @@ public class Pascal {
                                Sintactico sintactico=new Sintactico(lexico.get_tokens_sintacticos(), lexico.get_palabras_reservadas());
                                sintactico.analisis_sintactico();
                                
-                               System.out.println("\n\n Analisis sintactico exitoso \n\n");
+                               System.out.println("\n *** Analisis sintactico exitoso *** \n");
                                break;
                     case 'c' : System.out.println("\nIniciando proceso de compilacion....\n\n");
                                lexico=new Lexico(archivo);
@@ -61,7 +61,7 @@ public class Pascal {
                     default : System.out.println("\nOpcion incorrecta!. Ejecute java -jar pascal.jar -b para acceder al manual de usuario.\n");
                 }
             }else
-                System.out.println("Opcion incorrecta!. Ejecute java -jar pascal.jar -b para acceder al manual de usuario.\n");
+                System.out.println("\nOpcion incorrecta!. Ejecute java -jar pascal.jar -b para acceder al manual de usuario.\n");
         }else{
             //opcion=1, archivo=0
             if(!opcion.equalsIgnoreCase("") && archivo.equalsIgnoreCase("")){
@@ -70,7 +70,7 @@ public class Pascal {
                     switch(c){
                         case 'v' : System.out.println("\n\nVersion 1.1");
                                    break;
-                        case 'a' : System.out.println("\nAutor: Bruno Guala");
+                        case 'a' : System.out.println("\nAutor: Bruno Guala, Facultad de Informatica --- Universidad Nacional del Comahue");
                                    break;
                         case 'b' : manual();
                                    break;
@@ -86,13 +86,13 @@ public class Pascal {
     
     private static void manual (){
         System.out.println("\nNOMBRE \n");
-        System.out.println("\t pascal - compilador para un subconjunto de construcciones Pascal");
+        System.out.println("\t pascal.jar - compilador para un subconjunto de construcciones del \n\t lenguaje Pascal");
         System.out.println("\n\nSINOPSIS\n");
-        System.out.println("\t pascal [OPCION] [ARCHIVO]");
+        System.out.println("\t pascal.jar [OPCION] [ARCHIVO]");
         System.out.println("\n\nDESCRIPCION\n");
         System.out.println("\t Esta es mi descripcion");
         System.out.println("\n\n\t -l\n");
-        System.out.println("\t analisis lexico, los tokens generados se guardan en el archivo tokens.txt.");
+        System.out.println("\t analisis lexico, los tokens generados se guardan en el archivo \n\t tokens_sintacticos.txt.");
         System.out.println("\n\n\t -s\n");
         System.out.println("\t analisis sintactico.");
         System.out.println("\n\n\t -c\n");

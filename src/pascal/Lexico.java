@@ -94,7 +94,8 @@ public class Lexico {
     public void guardar_tokens (){
         try {
             
-            PrintWriter salida=new PrintWriter(new FileOutputStream("tokens_sintacticos.txt"));
+            String nombre_archivo=this.archivo.substring(0, this.archivo.length()-4);
+            PrintWriter salida=new PrintWriter(new FileOutputStream("tokens_sintacticos_"+nombre_archivo+".txt"));
             salida.println(this.tokens);
             salida.close();
             
@@ -289,7 +290,7 @@ public class Lexico {
                                             }
                                       }
                          } break;
-                case 1 : //Identificador
+                case 1 : //--- Identificador ---
                          switch(c){
                             case '@' : 
                             case '!' : 
@@ -345,7 +346,7 @@ public class Lexico {
                                      }
                          }
                          break;
-                case 2 : //Digito
+                case 2 : //--- Digito ---
                          switch(c){
                             case '@' : 
                             case '!' : 
@@ -517,8 +518,8 @@ public class Lexico {
                          }
                          break; 
                 case 9 : //lex contiene a >. En este estado podemos generar >, >=.
-                         //Verificamos la existencia de un error lexico.
                          switch(c){
+                            //Verificamos si existe error lexico.
                             case '@' : 
                             case '!' : 
                             case '#' : 
@@ -532,12 +533,15 @@ public class Lexico {
                             case '~' : System.out.println("\nError Lexico: *** El simbolo "+c+" no pertenece al alfabeto del lenguaje Pascal *** Linea "+this.linea_programa);
                                        System.exit(1);
                                        break;
-                            default:   if(c == '='){
+                            default:   if(c == '='){ //Generamos >=
                                             tokens=tokens+"\n<op_relacional,"+lex+c+">\n";
                                             tokens_sintacticos.add(new Token("op_relacional",lex+c,this.linea_programa));
                                             lex="";
                                             estado=0;
                                        }else{
+                                            tokens=tokens+"\n<op_relacional,"+lex+">\n"; //Generamos >
+                                            tokens_sintacticos.add(new Token("op_relacional",lex,this.linea_programa));
+                                            
                                             if(((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)){
                                                     lex=""+c;
                                                     estado=1;

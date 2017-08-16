@@ -13,7 +13,7 @@ import java.util.ArrayList;
  */
 public class Arreglo extends Simbolo {
     
-    private Simbolo tipo_dato; //Puede ser Simple("integer"), Simple("racional"), Estructurado(Simbolo) etc.
+    private Simbolo tipo_dato;
     private int cantidad_elementos;
     private int limite_inferior;
     private int limite_superior;
