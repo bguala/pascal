@@ -227,7 +227,7 @@ public class Sintactico {
         if((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(id))
             r=true;
         else{
-            System.out.println("Error Sintactico : *** Simbolo "+id+" inesperado *** Linea "+token.get_linea_programa());
+            System.out.println("\nError Sintactico : *** Simbolo "+id+" incompatible, se espera un identificador *** Linea "+token.get_linea_programa());
             System.exit(1);
         }
         
@@ -266,7 +266,7 @@ public class Sintactico {
         ArrayList ids=secuencia_ids();
         match("=");
         String dato=this.tokens_sintacticos.get(this.preanalisis).get_lexema();
-        
+        this.preanalisis++;
         //Verifiamos que dato sea un numero entero, true o false mediante un esquema de traduccion.
         
         int i;
@@ -826,7 +826,7 @@ public class Sintactico {
     //-----------------------------------------------------------------------------------
     
     private void bloque (TablaSimbolos ts){
-        match("begin");//Se puede sacar.
+        match("begin");
         S(ts);
         match("end");
     }
@@ -891,7 +891,8 @@ public class Sintactico {
                                 match(")");
                                 break;
                 }
-            }
+            }//Podriamos tener cero sentencias???. Si se aceptan cero sentencias no debemos generar error en
+            //la llamada a identificador(token).
                 
         }
     }
