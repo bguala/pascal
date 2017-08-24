@@ -37,7 +37,7 @@ public class Pascal {
                     case 'l' : lexico=new Lexico(archivo);
                                lexico.analisis_lexico();
                                lexico.guardar_tokens();
-                               System.out.println("\n *** Analisis lexico exitoso *** \n");
+                               System.out.println("\n *** Analisis lexico exitoso *** ");
                                break;
                     case 's' : lexico=new Lexico(archivo);
                                lexico.analisis_lexico();
@@ -46,7 +46,7 @@ public class Pascal {
                                Sintactico sintactico=new Sintactico(lexico.get_tokens_sintacticos(), lexico.get_palabras_reservadas());
                                sintactico.analisis_sintactico();
                                
-                               System.out.println("\n *** Analisis sintactico exitoso *** \n");
+                               System.out.println("\n *** Analisis sintactico exitoso *** ");
                                break;
                     case 'c' : System.out.println("\nIniciando proceso de compilacion....\n\n");
                                lexico=new Lexico(archivo);
@@ -88,18 +88,29 @@ public class Pascal {
         System.out.println("\nNOMBRE \n");
         System.out.println("\t pascal.jar - compilador para un subconjunto de construcciones del \n\t lenguaje Pascal");
         System.out.println("\n\nSINOPSIS\n");
-        System.out.println("\t pascal.jar [OPCION] [ARCHIVO]");
+        System.out.println("\t java -jar pascal.jar [OPCION] [ARCHIVO]");
         System.out.println("\n\nDESCRIPCION\n");
-        System.out.println("\t Esta es mi descripcion");
+        System.out.println("\t pascal.jar implementa el front-end de un compilador para un \n\t"
+                           + " subconjunto de construcciones del lenguaje Pascal. El front-end \n\t"
+                           + " se corresponde con la primer etapa de un proceso de compilación \n\t"
+                           + " y comprende cuatro fases: analisis lexico, analisis sintactico, \n\t"
+                           + " analisis semantico y generacion de codigo intermedio.");
         System.out.println("\n\n\t -l\n");
-        System.out.println("\t analisis lexico, los tokens generados se guardan en el archivo \n\t tokens_sintacticos.txt.");
+        System.out.println("\t analisis lexico, los tokens generados se guardan en el archivo \n\t tokens_sintacticos_ARCHIVO.txt.");
         System.out.println("\n\n\t -s\n");
-        System.out.println("\t analisis sintactico.");
+        System.out.println("\t analisis sintactico. Produce dos archivos de texto, los tokens \n\t"
+                           + " generados por el analizador lexico y las tablas de simbolos \n\t"
+                           + " parciales propias de esta fase.");
+        System.out.println("\n\n\t -m\n");
+        System.out.println("\t analisis semantico. Implementa un componente verificador de tipos. \n\t"
+                           + " Produce dos archivos de salida, los tokens generados por el analizador \n\t"
+                           + " lexico y las tablas de simbolos con la informacion definitiva de cada \n\t ambiente.");
         System.out.println("\n\n\t -c\n");
-        System.out.println("\t proceso de compilacion completo, incluye fase de analisis semantico.");
+        System.out.println("\t proceso de compilacion completo, incluye fase de generacion de codigo \n\t"
+                           + " intermedio. Genera un archivo con extensión mep.");
         System.out.println("\n\n\t -v\n");
-        System.out.println("\t version del compilador");
+        System.out.println("\t version del compilador.");
         System.out.println("\n\n\t -a\n");
-        System.out.println("\t Autor");
+        System.out.println("\t Autor.");
     }
 }
