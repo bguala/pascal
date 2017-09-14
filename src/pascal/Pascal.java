@@ -43,8 +43,10 @@ public class Pascal {
                                lexico.analisis_lexico();
                                lexico.guardar_tokens();
                                    
-                               Sintactico sintactico=new Sintactico(lexico.get_tokens_sintacticos(), lexico.get_palabras_reservadas());
+                               Sintactico sintactico=new Sintactico(lexico.get_tokens_sintacticos(), lexico.get_palabras_reservadas(), archivo);
                                sintactico.analisis_sintactico();
+                               
+                               sintactico.guardar_ts();
                                
                                System.out.println("\n *** Analisis sintactico exitoso *** ");
                                break;
@@ -100,10 +102,13 @@ public class Pascal {
         System.out.println("\n\n\t -s\n");
         System.out.println("\t analisis sintactico. Produce dos archivos de texto, los tokens \n\t"
                            + " generados por el analizador lexico y las tablas de simbolos \n\t"
-                           + " parciales propias de esta fase.");
+                           + " parciales propias de cada ambiente. Este ultimo archivo se crea \n\t"
+                           + " para comprobar que la cadena estatica del programa fuente se \n\t"
+                           + " crea correctamente y que cada tabla de simbolos contiene el \n\t"
+                           + " entorno local de cada subprograma.");
         System.out.println("\n\n\t -m\n");
         System.out.println("\t analisis semantico. Implementa un componente verificador de tipos. \n\t"
-                           + " Produce dos archivos de salida, los tokens generados por el analizador \n\t"
+                           + " Produce dos archivos de texto, los tokens generados por el analizador\n\t"
                            + " lexico y las tablas de simbolos con la informacion definitiva de cada \n\t ambiente.");
         System.out.println("\n\n\t -c\n");
         System.out.println("\t proceso de compilacion completo, incluye fase de generacion de codigo \n\t"

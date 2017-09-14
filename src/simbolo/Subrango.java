@@ -11,20 +11,20 @@ package simbolo;
  */
 public class Subrango extends Simbolo {
     
-    private String limite_inferior;
-    private String limite_superior;
+    private int limite_inferior;
+    private int limite_superior;
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Subrango (String li, String ls){
+    public Subrango (int li, int ls){
         super("",1);
         this.limite_inferior=li;
         this.limite_superior=ls;
     }
     
-    public Subrango (String lexema, int espacio_asignado, String li, String ls){
+    public Subrango (String lexema, int espacio_asignado, int li, int ls){
         super(lexema,espacio_asignado);
         this.limite_inferior=li;
         this.limite_superior=ls;
@@ -34,11 +34,11 @@ public class Subrango extends Simbolo {
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public String get_limite_inferior (){
+    public int get_limite_inferior (){
         return this.limite_inferior;
     }
     
-    public String get_limite_superior (){
+    public int get_limite_superior (){
         return this.limite_superior;
     }
     
@@ -46,11 +46,11 @@ public class Subrango extends Simbolo {
     //--- Modificadores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public void set_limite_inferior (String li){
+    public void set_limite_inferior (int li){
         this.limite_inferior=li;
     }
     
-    public void set_limite_superior (String ls){
+    public void set_limite_superior (int ls){
         this.limite_superior=ls;
     }
     

@@ -261,6 +261,7 @@ public class Lexico {
                             case '%' : 
                             case '&' :
                             case '?' :
+                            case '\"' :
                             case '¡' : 
                             case '¿' : 
                             case '_' :
@@ -299,6 +300,7 @@ public class Lexico {
                             case '%' : 
                             case '&' :
                             case '?' :
+                            case '\"':
                             case '¡' : 
                             case '¿' : 
                             case '_' :
@@ -355,6 +357,7 @@ public class Lexico {
                             case '%' : 
                             case '&' :
                             case '?' :
+                            case '\"':
                             case '¡' : 
                             case '¿' : 
                             case '_' :
@@ -396,6 +399,7 @@ public class Lexico {
                             case '%' : 
                             case '&' :
                             case '?' :
+                            case '\"':
                             case '¡' : 
                             case '¿' : 
                             case '_' :
@@ -445,6 +449,7 @@ public class Lexico {
                             case '%' : 
                             case '&' :
                             case '?' :
+                            case '\"':
                             case '¡' : 
                             case '¿' : 
                             case '_' :
@@ -488,6 +493,7 @@ public class Lexico {
                              case '%' : 
                              case '&' :
                              case '?' :
+                             case '\"':
                              case '¡' : 
                              case '¿' : 
                              case '_' :
@@ -527,6 +533,7 @@ public class Lexico {
                             case '%' : 
                             case '&' :
                             case '?' :
+                            case '\"':
                             case '¡' : 
                             case '¿' : 
                             case '_' :

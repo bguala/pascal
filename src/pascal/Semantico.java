@@ -17,7 +17,7 @@ import simbolo.*;
  *
  * @author Bruno
  */
-public class Sintactico {
+public class Semantico {
     
     private int preanalisis;
     private int id_entorno;
@@ -30,7 +30,7 @@ public class Sintactico {
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Sintactico (ArrayList<Token> tokens_sintacticos, ArrayList<String> palabras, String archivo){
+    public Semantico (ArrayList<Token> tokens_sintacticos, ArrayList<String> palabras, String archivo){
         this.preanalisis=0;
         this.id_entorno=1;
         this.tokens_sintacticos=tokens_sintacticos;
@@ -114,10 +114,11 @@ public class Sintactico {
     
     private void imprimir_ts (TablaSimbolos ts, PrintWriter salida){
         ArrayList<TablaSimbolos> lista=ts.get_ts_inferiores();
-        int i;
+        int i=0;
         int n=lista.size();
         if(!lista.isEmpty()){
             for(i=0; i<n; i++){
+                //System.out.println(lista.get(i).mostrar_contenido());
                 salida.println(lista.get(i).mostrar_contenido());
                 imprimir_ts(lista.get(i), salida);
             }
@@ -138,11 +139,6 @@ public class Sintactico {
         bloque(this.tabla_simbolos);
         
         //Fin del programa principal.
-        int n=this.tokens_sintacticos.size()-1;
-        if(this.preanalisis > n){
-            System.out.println("\nError Sintactico : *** Se esperaba el simbolo \""+"."+"\" y se encontro \""+"\" *** Linea "+this.tokens_sintacticos.get(n).get_linea_programa());
-            System.exit(1);
-        }
         match(".");
     }
     
@@ -601,7 +597,6 @@ public class Sintactico {
         match("end");
         
         insertar_tipos(ts,ids,reg_principal);
-        
     }
     
     //--- Para reusar en seccion var ---
@@ -755,7 +750,6 @@ public class Sintactico {
             case "record"  : this.preanalisis++;
                              Registro registro=new Registro();
                              r(registro);
-                             match("end");
                              insertar_tipos(ts,ids,new Variable(registro));
                              break;
             default : 
@@ -1038,7 +1032,7 @@ public class Sintactico {
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         
         if(token.get_lexema().equalsIgnoreCase("begin")){ //Presencia de un bloque.
-            //this.preanalisis++;
+            this.preanalisis++;
             bloque(ts);
         }else
             sentencia(ts);
@@ -1050,7 +1044,7 @@ public class Sintactico {
             token=this.tokens_sintacticos.get(this.preanalisis);
             
             if(token.get_lexema().equalsIgnoreCase("begin")){
-                //this.preanalisis++;
+                this.preanalisis++;
                 bloque(ts);
             }else
                 sentencia(ts);
@@ -1090,14 +1084,12 @@ public class Sintactico {
             token=this.tokens_sintacticos.get(this.preanalisis);
             
             if(token.get_lexema().equalsIgnoreCase("begin")){
-                //this.preanalisis++;
+                this.preanalisis++;
                 bloque(ts);
             }else
                 sentencia(ts);
         }else
             ; //Presencia de cadena nula. No hay bloque else.
-        
-        match("end");
     }
     
     private void opciones (TablaSimbolos ts){
@@ -1106,52 +1098,15 @@ public class Sintactico {
     
     private void opcion (TablaSimbolos ts){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
-        //if(digito(token) || identificador(token))
-            //this.preanalisis++;
-        char c=token.get_lexema().charAt(0);
-        if((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(token.get_lexema()))
+        if(digito(token) || identificador(token))
             this.preanalisis++;
-        else{
-            //--- Digito ---
-            if(token.get_lexema().equalsIgnoreCase("-")){//Presencia de numero negativo.
-                this.preanalisis++;
-                token=this.tokens_sintacticos.get(this.preanalisis);
-            }
-
-            if(digito(token)){
-                this.preanalisis++;
-            }else{
-                //Podemos tener cualquier otro caracter.
-                System.out.println("\nError Sintactico : *** Simbolo "+token.get_lexema()+" inesperado, los limites de un subrango se construyen a partir de numeros enteros *** linea "+token.get_linea_programa());
-                System.exit(1);
-            }
-
-            //match("..");
-            token=tokens_sintacticos.get(this.preanalisis);
-            if(token.get_lexema().equalsIgnoreCase("..")){
-                this.preanalisis++;
-                token=this.tokens_sintacticos.get(this.preanalisis);
-                //--- Digito ---
-                if(token.get_lexema().equalsIgnoreCase("-")){//Presencia de numero negativo.
-                    this.preanalisis++;
-                    token=this.tokens_sintacticos.get(this.preanalisis);
-                }
-
-                if(digito(token)){
-                    this.preanalisis++;
-                }else{
-                    System.out.println("\nError Sintactico : *** Simbolo "+token.get_lexema()+" inesperado, los limites de un subrango se construyen a partir de numeros enteros *** linea "+token.get_linea_programa());
-                    System.exit(1);
-                }
-            }
-        }
-        
+                
         match(":");
         
         token=this.tokens_sintacticos.get(this.preanalisis);
         
         if(token.get_lexema().equalsIgnoreCase("begin")){
-            //this.preanalisis++;
+            this.preanalisis++;
             bloque(ts);
         }else
             sentencia(ts);
@@ -1163,16 +1118,8 @@ public class Sintactico {
         if(token.get_lexema().equalsIgnoreCase(";")){
             this.preanalisis++;
             token=this.tokens_sintacticos.get(this.preanalisis);
-            
-            //---ERROR SI HAY UN ELSE ---
-            if(token.get_lexema().equalsIgnoreCase("else")){
-                System.out.println("\nError Sintactico : *** No esta permitido el uso de ; antes de la palabra reservada else *** linea "+token.get_linea_programa());
-                System.exit(1);
-            }
-            
             char c=token.get_lexema().charAt(0);
-            //Podemos tener un digito, identificador o subrango.
-            if(token.get_lexema().equalsIgnoreCase("-") || digito(token) || ((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(token.get_lexema()))){
+            if(digito(token) || ((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(token.get_lexema()))){
                 opciones(ts);
             }else              
                 ; //Presencia de cadena nula. Determina el fin de las opciones del case con punto y coma.
@@ -1193,7 +1140,7 @@ public class Sintactico {
     private void write (){
         match("(");
         
-        expresion();
+        exp();
         
         match(")");
     }
@@ -1209,10 +1156,7 @@ public class Sintactico {
             case "("   : //--- Expresion parentizada ---
                          expresion();
                          break;
-            default :   //Guardamos el valor actual de preanalisis para no alterar la ejecucion de expresion. Esto puede ocurrir 
-                        //si tenemos una expresion que empieza con una llamada a funcion, ej: a:=fun1(a,b)+10*a;
-                        int copia=this.preanalisis;
-            
+            default :
                         c=token.get_lexema().charAt(0);
                         //--- Identificador ---
                         if((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(token.get_lexema())){
@@ -1222,18 +1166,7 @@ public class Sintactico {
                             switch(token.get_lexema()){
                                 case "(" : //--- Llamada a Subprograma ---
                                            this.preanalisis++;
-                                           args();
-                                           match(")");
-                                           
-                                           token=this.tokens_sintacticos.get(this.preanalisis);
-                                           switch(token.get_lexema()){
-                                               case "+" :
-                                               case "-" :
-                                               case "*" :
-                                               case "etc" : this.preanalisis++;
-                                                            expresion();
-                                           }
-                                           
+                                           //L1();
                                            break;
                                 case "." : //--- Acceso a registro ---
                                            this.preanalisis++;
@@ -1272,8 +1205,7 @@ public class Sintactico {
                                                              this.preanalisis--;
                                                              expresion();
                                                              break;
-                                               default : ; //Presencia de cadena nula. Solamente tenemos un identificador. Anteriormente avanzamos el preanalisis.
-                                                         
+                                               default : ; //Presencia de cadena nula. Solamente tenemos un identificador.
                                            }
                             }
                         }else{
@@ -1311,7 +1243,7 @@ public class Sintactico {
     private void succ (){
         match("(");
         
-        expresion();
+        exp();
         
         match(")");
     }
@@ -1319,7 +1251,7 @@ public class Sintactico {
     private void pred (){
         match("(");
         
-        expresion();
+        exp();
         
         match(")");
     }
@@ -1346,8 +1278,7 @@ public class Sintactico {
             case "false"   : this.preanalisis++;
                              break;
             
-            default : //exp();
-                      expresion();
+            default : exp();
         }
     }
     
@@ -1394,8 +1325,8 @@ public class Sintactico {
     private void I1 (){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         switch(token.get_lexema()){
-            case "*" :
-            case "/" : this.preanalisis++;
+            case "+" :
+            case "-" : this.preanalisis++;
                        J();
                        I1();
                        break;
@@ -1406,8 +1337,8 @@ public class Sintactico {
     private void H1 (){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         switch(token.get_lexema()){
-            case "+" :
-            case "-" : this.preanalisis++;
+            case "*" :
+            case "/" : this.preanalisis++;
                        I();
                        H1();
                        break;
@@ -1465,34 +1396,12 @@ public class Sintactico {
                     this.preanalisis++;
                     token=this.tokens_sintacticos.get(this.preanalisis);
                     
-                    switch(token.get_lexema()){
-                        //--- Llamada a Subprograma ---
-                        case "("   : this.preanalisis++;
-                                     args();
-                                     match(")");
-                                     break;
-                        case "." : //--- Acceso a registro ---
-                                   this.preanalisis++;
-                                   token=this.tokens_sintacticos.get(this.preanalisis);
-                                   if(identificador(token))
-                                       this.preanalisis++;
-                                   break;
-                        case "[" : //--- Acceso a arreglo ---
-                                   this.preanalisis++;
-                                   token=this.tokens_sintacticos.get(this.preanalisis);
-
-                                   if(digito(token) || identificador(token))
-                                       this.preanalisis++;
-
-                                   match("]");
-                                   break;
-                        default : ; //Solamente tenemos un identificador.
-                    }
-                    
-//                    if(token.get_lexema().equalsIgnoreCase("(")){
-//                        
-//                    }else
-//                        ; //Solamente tenemos un identificador.
+                    //--- Llamada a Subprograma ---
+                    if(token.get_lexema().equalsIgnoreCase("(")){
+                        args();
+                        match(")");
+                    }else
+                        ; //Solamente tenemos un identificador.
                 }
             }
         }

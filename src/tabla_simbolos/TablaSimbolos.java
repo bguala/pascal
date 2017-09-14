@@ -6,6 +6,7 @@
 package tabla_simbolos;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import simbolo.*;
@@ -21,8 +22,8 @@ public class TablaSimbolos {
     
     //Para implementar cadena estatica.
     private TablaSimbolos superior;
-    //Para fines de debug, permite recorrer en sentido inverso la cadena estatica.
-    private TablaSimbolos inferior;
+    //Para debug, permite recorrer en sentido inverso la cadena estatica.
+    private ArrayList<TablaSimbolos> inferiores;
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
@@ -32,7 +33,7 @@ public class TablaSimbolos {
         this.tabla_simbolos=new HashMap<String, Simbolo>(75, (float)0.8);
         this.id_entorno=id;
         this.superior=null;
-        this.inferior=null;
+        this.inferiores=new ArrayList();
     }
     
     //-----------------------------------------------------------------------------------
@@ -53,6 +54,10 @@ public class TablaSimbolos {
         return this.id_entorno;
     }
     
+    public ArrayList<TablaSimbolos> get_ts_inferiores (){
+        return this.inferiores;
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- Modificadores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------
@@ -62,7 +67,7 @@ public class TablaSimbolos {
     }
     
     public void set_ts_inferior (TablaSimbolos ts){
-        this.inferior=ts;
+        this.inferiores.add(ts);
     }
     
     //-----------------------------------------------------------------------------------
@@ -92,6 +97,14 @@ public class TablaSimbolos {
     
     public String mostrar_contenido (){
         String cadena="";
+        String encabezado="";
+        String separacion="";
+        int superior=0;
+        int i;
+        for(i=0; i<100; i++){
+            separacion += "*";
+        }
+        
         Simbolo s=null;
         Iterator iterator=this.tabla_simbolos.entrySet().iterator();
         
@@ -101,7 +114,12 @@ public class TablaSimbolos {
             cadena = cadena+elemento.getKey()+" => "+" ( "+s.a_cadena()+" ) \n";
         }
         
-        return cadena;
+        if(this.superior != null)
+            superior=this.superior.get_id();
+        
+        encabezado="ID ENTORNO: "+this.id_entorno+"\n"+" ID ENTORNO SUPERIOR: "+superior+"\n";
+        
+        return "\n\n"+separacion+"\n\n"+encabezado+"\n"+cadena+"\n"+separacion;
     }
     
 }
