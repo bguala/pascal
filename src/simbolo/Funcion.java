@@ -15,7 +15,7 @@ public class Funcion extends Simbolo {
     
     private ArrayList<Parametro> lista_parametros;
     private String pasaje_parametro;
-    private Simbolo tipo_retorno; //Puede ser integer, boolean u otro tipo definido por el usuario.
+    private Simbolo tipo_retorno; //Puede ser integer o boolean.
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
@@ -96,5 +96,49 @@ public class Funcion extends Simbolo {
         }
         
         return super.a_cadena() + lista + " : " + this.tipo_retorno.a_cadena();
+    }
+    
+    /*
+    * id: contiene el lexema asociado a una funcion.
+    * argumentos: contiene todos los argumentos presentes en una llamada a funcion.
+    */
+    public String chequeo_de_tipos (Token id, ArrayList<Parametro> argumentos){
+        int n=this.lista_parametros.size();
+        int m=argumentos.size();
+        String error="";
+        
+        if(n != m){
+            System.out.println("\nError Semantico : *** La cantidad de argumentos especificados en \""+id.get_lexema()+"\" no coinciden con la cantidad de parametros formales presentes en su definicion : "+this.a_cadena()+" *** Linea "+id.get_lexema());
+            System.exit(1);
+        }
+        
+        if(!coinciden_tipos(argumentos, error)){
+            System.out.println(error+id.get_linea_programa());
+            System.exit(1);
+        }
+        
+        return ((TipoDato)this.tipo_retorno).get_nombre_tipo();
+    }
+    
+    private boolean coinciden_tipos (ArrayList<Parametro> argumentos, String error){
+        int n=argumentos.size();
+        TipoDato tipo_param=null;
+        TipoDato tipo_arg=null;
+        int i=0;
+        boolean fin=true;
+        
+        while(i<n && fin){
+            tipo_arg=(TipoDato)(argumentos.get(i)).get_tipo_dato();
+            tipo_param=(TipoDato)(this.lista_parametros.get(i)).get_tipo_dato();
+            
+            if(!(tipo_param.get_nombre_tipo().equalsIgnoreCase(tipo_arg.get_nombre_tipo()))){
+                fin=false;
+                error="\nError Semantico: *** Tipos incompatibles, "+this.lista_parametros.get(i).a_cadena()+", mientras que "+argumentos.get(i).a_cadena()+" *** Linea ";
+            }
+            
+            i++;
+        }
+        
+        return fin;
     }
 }

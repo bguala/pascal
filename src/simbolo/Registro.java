@@ -74,4 +74,44 @@ public class Registro extends Simbolo {
         return " ( "+str;
     }
     
+    public String chequeo_de_tipos (Token nombre_registro, Token identificador){
+        TipoDato tipo=this.obtener_campo(identificador);
+        
+        if(tipo == null){
+            System.out.println("\nError Semantico : *** El identificador \""+identificador.get_lexema()+"\" no esta definido como un campo del registro \""+nombre_registro.get_lexema()+"\" *** Linea "+identificador.get_linea_programa());
+            System.exit(1);
+        }
+        
+        return tipo.get_nombre_tipo();
+    }
+    
+    private TipoDato obtener_campo (Token identificador){
+        int n=this.lista_campos.size();
+        int i=0;
+        boolean fin=true;
+        TipoDato tipo=null;
+        ArrayList<String> campos=null;
+        int j, m;
+        
+        while(i<n && fin){
+            //  Obtenemos una hipotetica lista de ids en un campo del registro.
+            campos=this.lista_campos.get(i).get_parametro_formal();
+            m=campos.size();
+            j=0;
+            while(j<m && fin){
+                
+                if(campos.get(j).equalsIgnoreCase(identificador.get_lexema())){
+                    fin=false;
+                    tipo=(TipoDato)this.lista_campos.get(i).get_tipo_dato();
+                }
+                
+                j++;
+            }
+            
+            i++;
+        }
+        
+        return tipo;
+    }
+    
 }

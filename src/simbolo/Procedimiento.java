@@ -76,4 +76,55 @@ public class Procedimiento extends Simbolo {
         return super.a_cadena() + lista;
     }
     
+    public String chequeo_de_tipos (Token id, ArrayList<Parametro> argumentos){
+        int n=this.lista_parametros.size();
+        int m=argumentos.size();
+        String error="";
+        
+        //  Verificamos si en la definicion de un procedimiento hay cero parametros y en su llamada n.
+        if((n == 0) && (m > 0)){
+            System.out.println("\nError Semantico : *** El procedimiento \""+id.get_lexema()+"\" no posee parametros formales en su definicion. Sin embargo en su llamada se especificaron "+m+" *** Linea "+id.get_linea_programa());
+            System.exit(1);
+        }
+        
+        if((m == 0) && (n > 0)){
+            System.out.println("\nError Semantico : *** El procedimiento \""+id.get_lexema()+"\" posee "+n+" parametros formales en su definicion, "+this.a_cadena()+". Sin embargo en su llamada se especificaron 0 *** Linea "+id.get_linea_programa());
+            System.exit(1);
+        }
+        
+        if(n != m){
+            System.out.println("\nError Semantico : *** La cantidad de argumentos especificados en \""+id.get_lexema()+"\" no coinciden con la cantidad de parametros formales presentes en su definicion : "+this.a_cadena()+" *** Linea "+id.get_lexema());
+            System.exit(1);
+        }
+        
+        if(!coinciden_tipos(argumentos, error)){
+            System.out.println(error+id.get_linea_programa());
+            System.exit(1);
+        }
+        
+        return "void";
+    }
+    
+    private boolean coinciden_tipos (ArrayList<Parametro> argumentos, String error){
+        int n=argumentos.size();
+        TipoDato tipo_param=null;
+        TipoDato tipo_arg=null;
+        int i=0;
+        boolean fin=true;
+        
+        while(i<n && fin){
+            tipo_arg=(TipoDato)(argumentos.get(i)).get_tipo_dato();
+            tipo_param=(TipoDato)(this.lista_parametros.get(i)).get_tipo_dato();
+            
+            if(!(tipo_param.get_nombre_tipo().equalsIgnoreCase(tipo_arg.get_nombre_tipo()))){
+                fin=false;
+                error="\nError Semantico: *** Tipos incompatibles, "+this.lista_parametros.get(i).a_cadena()+", mientras que "+argumentos.get(i).a_cadena()+" *** Linea ";
+            }
+            
+            i++;
+        }
+        
+        return fin;
+    }
+    
 }
