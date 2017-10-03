@@ -1381,8 +1381,18 @@ public class Semantico {
         I(ts);H1(ts);
     }
     
-    private void I (TablaSimbolos ts){
-        J(ts);I1(ts);
+    private void I (TablaSimbolos ts, String i_tipo){
+        String j_tipo="";
+        String i1_tipo="";
+        
+        J(ts, j_tipo);I1(ts, i1_tipo);
+        
+        if(j_tipo.equalsIgnoreCase(i1_tipo))
+            i_tipo=j_tipo;
+        else{
+            System.out.println("\nError Semantico : *** *** Linea ");
+            System.exit(1);
+        }
     }
     
     private void J (TablaSimbolos ts, String j_tipo){
@@ -1391,8 +1401,20 @@ public class Semantico {
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         if(token.get_lexema().equalsIgnoreCase("-")){
             this.preanalisis++;K(ts, k_tipo);
-        }else
+            
+            //--- Esquema de traduccion ---
+            if(k_tipo.equalsIgnoreCase("integer"))
+                j_tipo="integer";
+            else{
+                token=this.tokens_sintacticos.get(this.preanalisis);
+                System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" debe ser de tipo integer *** Linea "+token.get_linea_programa());
+                System.exit(1);
+            }
+        }else{
             K(ts, k_tipo);
+            //  Sintetizamos el tipo que contiene k_tipo.
+            j_tipo=k_tipo;
+        }
     }
     
     private void I1 (TablaSimbolos ts){
@@ -1460,12 +1482,18 @@ public class Semantico {
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         
         if(token.get_lexema().equalsIgnoreCase("(")){
+            
+            String tipo_syn="";
             this.preanalisis++;
-            expresion(ts);
+            expresion(ts, tipo_syn);
+            //  Sintetizamos el tipo de expresion.
+            k_tipo=tipo_syn;
+            
             match(")");
         }else{
             if(digito(token)){
                 this.preanalisis++;
+                k_tipo="integer";
             }else{
                 if(identificador(token)){
                     id=token;
@@ -1570,7 +1598,15 @@ public class Semantico {
                                    k_tipo=((Arreglo)simbolo).chequeo_de_tipos(id, indice);
                                    
                                    break;
-                        default : ; //Solamente tenemos un identificador.
+                        default : //; //Solamente tenemos un identificador.
+                                  if(simbolo instanceof Variable){
+                                      TipoDato tipo=(TipoDato)((Variable)simbolo).get_tipo_dato();
+                                      k_tipo=tipo.get_nombre_tipo();
+                                  }else{
+                                      if(simbolo instanceof Constante){
+                                          k_tipo=((Constante)simbolo).get_tipo();
+                                      }
+                                  }
                     }
                     
 //                    if(token.get_lexema().equalsIgnoreCase("(")){

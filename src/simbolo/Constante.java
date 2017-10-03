@@ -30,6 +30,18 @@ public class Constante extends Simbolo {
         return this.valor;
     }
     
+    //--- Inferimos el tipo de la constante, puede ser integer o boolean ---
+    public String get_tipo(){
+        String tipo="";
+        char c=this.valor.charAt(0);
+        if((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)))
+            tipo="boolean";
+        else
+            tipo="integer";
+        
+        return tipo;
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- Modificadores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------

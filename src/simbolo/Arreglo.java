@@ -116,20 +116,25 @@ public class Arreglo extends Simbolo {
     }
     
     public String chequeo_de_tipos (Token id, int indice){
-        
+        String tipo="";
         if(!((indice >= this.limite_inferior) && (indice <= this.limite_superior))){
             System.out.println("\nError Semantico : *** Indice fuera de rango, los limites del arreglo \""+id.get_lexema()+"\" son [ "+this.limite_inferior+", "+this.limite_superior+" ] *** Linea "+id.get_linea_programa());
             System.exit(1);
         }
         
+        //  Podemos obtener integer, boolean o un nuevo tipo de dato definido por el usuario.
         if(this.tipo_dato instanceof TipoDato)
-            return ((TipoDato)this.tipo_dato).get_nombre_tipo();
+            tipo=((TipoDato)this.tipo_dato).get_nombre_tipo();
+        
         if(this.tipo_dato instanceof Arreglo){
             System.out.println("\nError Semantico : *** En la definicion de \""+id.get_lexema()+"\" no se admiten arreglos como tipos de datos *** Linea "+id.get_linea_programa());
             System.exit(1);
         }
+        
         if(this.tipo_dato instanceof Registro)
-            return "record";
+            tipo="record";
+        
+        return tipo;
     }
     
 }
