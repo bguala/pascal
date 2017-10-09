@@ -958,6 +958,9 @@ public class Semantico {
     //--- Bloque ------------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
+    /*
+     * ts puede ser una tabla de simbolos local a un subprograma o la tabla de simbolos principal.
+    */
     private void bloque (TablaSimbolos ts){
         match("begin");
         S(ts);
@@ -984,6 +987,13 @@ public class Semantico {
     }
     
     private void sentencia (TablaSimbolos ts){
+        String sentencia_tipo="";
+        String succ_tipo="";
+        String pred_tipo="";
+        String var="";
+        String tipo="";
+        Simbolo simbolo=null;
+        Token tk=null;
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         
         switch(token.get_lexema()){
@@ -997,34 +1007,113 @@ public class Semantico {
                             seleccion_multiple(ts);
                             break;
             case "read"   : this.preanalisis++;
-                            read();
+                            read(ts);
                             break;
             case "write"  : this.preanalisis++;
-                            write();
+                            write(ts);
                             break;
             case "succ"   : this.preanalisis++;
-                            succ();
+                            succ(ts, succ_tipo);
+                            sentencia_tipo=succ_tipo;
                             break;
             case "pred"   : this.preanalisis++;
-                            pred();
+                            pred(ts, pred_tipo);
+                            sentencia_tipo=pred_tipo;
                             break;
             //--- Identificador ---
             default : 
                     //La llamada a identificador(token) generaba un error si el bloque no tenia sentencias.
                     char c=token.get_lexema().charAt(0);
                     if((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(token.get_lexema())){
+                        tk=token;
                         this.preanalisis++;
                         token=this.tokens_sintacticos.get(this.preanalisis);
-
+                        
+                        ArrayList<Parametro> argumentos=new ArrayList();
+                        
                         switch(token.get_lexema()){
                             case ":=" : //--- Asignacion ---
+                                        
+                                        //  Podemos asignar true, false o una expresion que puede ser acceso a arreglo-registro, llamada a subprograma
+                                        //  llamada a funciones predefinidas succ-pred etc.
+                                        argumento(ts, argumentos);
+                                        
+                                        //--- Esquema de traduccion ---
+                                        simbolo=this.obtener_valor(ts, tk);
+                                        if(simbolo != null){
+                                            if(simbolo instanceof Variable){
+                                                TipoDato tipo_dato=(TipoDato)((Variable)simbolo).get_tipo_dato();
+                                                tipo=((TipoDato)argumentos.get(0).get_tipo_dato()).get_nombre_tipo();
+                                                
+                                                if(tipo_dato.get_nombre_tipo().equalsIgnoreCase(tipo)){
+                                                    sentencia_tipo=tipo;
+                                                }else{
+                                                    System.out.println("\nError Semantico : *** Tipos incompatibles, esta intentando asignar una expresion de tipo "+tipo+", en una variable de tipo "+tipo_dato.get_nombre_tipo()+" *** Linea "+tk.get_linea_programa());
+                                                    System.exit(1);
+                                                }
+                                            }else{
+                                                if(simbolo instanceof Constante){
+                                                    System.out.println("\nError Semantico : *** No es posible modificar el contenido de una CONSTANTE en tiempo de ejecucion *** Linea "+token.get_linea_programa());
+                                                    System.exit(1);
+                                                }else{
+                                                    if(simbolo instanceof Registro)
+                                                        var="REGISTRO";
+                                                    if(simbolo instanceof Funcion)
+                                                        var="FUNCION";
+                                                    if(simbolo instanceof Procedimiento)
+                                                        var="PROCEDIMIENTO";
+                                                    if(simbolo instanceof Enumeracion)
+                                                        var="ENUMERACION";
+                                                    if(simbolo instanceof Subrango)
+                                                        var="SUBRANGO";
+                                                    
+                                                    System.out.println("\nError Semantico : *** No es posible realizar asignaciones en identificadores de tipo "+var+" *** Linea "+tk.get_linea_programa());
+                                                    System.exit(1);
+                                                }
+                                            }
+                                        }else{
+                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se encuentra definido *** Linea "+tk.get_linea_programa());
+                                            System.exit(1);
+                                        }
+                                        
                                         this.preanalisis++;
-                                        argumento();
+                                                                                
                                         break;
                             case "("  : //--- Llamada a Subprograma ---
+                                
+                                        simbolo=this.obtener_valor(ts, tk);
+                                        //  Verificamos si el identificador se encuentra definido em la TS.
+                                        if(simbolo == null){
+                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se encuentra definido *** Linea "+tk.get_linea_programa());
+                                            System.exit(1);
+                                        }
+                                        //   Verificamos si el identificador se encuentra definido como Funcion o Procedimiento.     
+                                        if(!(simbolo instanceof Funcion) || !(simbolo instanceof Procedimiento)){
+                                           System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" debe estar definido como FUNCION o PROCEDIMIENTO *** Linea "+tk.get_linea_programa());
+                                           System.exit(1);
+                                        }
+                                         
                                         this.preanalisis++;
-                                        args();
+                                        
+                                        
+                                        args(ts, argumentos);
+                                        
+                                        //   Verificamos cantidad y tipos de parametros para una Funcion o Procedimiento.
+                                        if(simbolo instanceof Funcion)
+                                            sentencia_tipo=((Funcion) simbolo).chequeo_de_tipos(tk, argumentos);
+                                        else
+                                            sentencia_tipo=((Procedimiento) simbolo).chequeo_de_tipos(tk, argumentos);
+                                        
+                                        
                                         match(")");
+                                        
+                                        token=this.tokens_sintacticos.get(this.preanalisis);
+                                        //   Verificamos si un procedimiento no esta incluido en una expresion.
+                                        if(!token.get_lexema().equalsIgnoreCase(";") && (simbolo instanceof Procedimiento)){
+                                            System.out.println("\nError Semantico : *** No se puede utilizar un Procedimiento como operando en una expresion aritmetica, relacional o booleana *** linea "+tk.get_linea_programa());
+                                            System.exit(1);
+                                        }
+                                        
                                         break;
                         }
                     }//Podriamos tener cero sentencias???. Si se aceptan cero sentencias no debemos generar error en la llamada a identificador(token).
@@ -1035,9 +1124,24 @@ public class Semantico {
     }
     
     private void alternativa (TablaSimbolos ts){
-        expresion();match("then");
+        String alternativa_tipo="";
+        String expresion_tipo="";
+        Token token=null;
         
-        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        expresion(ts, expresion_tipo);
+        
+        //--- Esquema de traduccion ---
+        if(expresion_tipo.equalsIgnoreCase("boolean"))
+            alternativa_tipo="void";
+        else{
+            token=this.tokens_sintacticos.get(this.preanalisis);
+            System.out.println("\nError Semantico : *** Tipos incompatibles, la estructura \"if\" requiere una expresion de tipo boolean. Se encontro una expresion de tipo "+expresion_tipo+" *** Linea "+token.get_linea_programa());
+            System.exit(1);
+        }
+        
+        match("then");
+        
+        token=this.tokens_sintacticos.get(this.preanalisis);
         
         if(token.get_lexema().equalsIgnoreCase("begin")){ //Presencia de un bloque.
             //this.preanalisis++;
@@ -1061,9 +1165,24 @@ public class Semantico {
     }
     
     private void repetitiva (TablaSimbolos ts){
-        expresion();match("do");
+        String expresion_tipo="";
+        String repetitiva_tipo="";
+        Token token=null;
         
-        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        expresion(ts, expresion_tipo);
+        
+        //--- Esquema de traduccion ---
+        if(expresion_tipo.equalsIgnoreCase("boolean"))
+            repetitiva_tipo="void";
+        else{
+            token=this.tokens_sintacticos.get(this.preanalisis);
+            System.out.println("\nError Semantico : *** Tipos incompatibles, la estructura \"while\" requiere una expresion de tipo boolean. Se encontro una expresion de tipo "+expresion_tipo+" *** Linea "+token.get_linea_programa());
+            System.exit(1);
+        }
+        
+        match("do");
+        
+        token=this.tokens_sintacticos.get(this.preanalisis);
         
         if(token.get_lexema().equalsIgnoreCase("begin")){
             //this.preanalisis++;
@@ -1073,13 +1192,31 @@ public class Semantico {
     }
     
     private void seleccion_multiple (TablaSimbolos ts){
+        String seleccion_multiple="";
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         
         if(digito(token))
             this.preanalisis++;
-        else
-            if(identificador(token))
+        else//podriamos usar expresion(ts, expresion_tipo)
+            if(identificador(token)){
+                
+                //--- Esquema de traduccion ---
+                Variable variable=(Variable)this.obtener_valor(ts, token);
+                if(variable != null){
+                    TipoDato tipo_dato=(TipoDato)variable.get_tipo_dato();
+                    if(tipo_dato.get_nombre_tipo().equalsIgnoreCase("integer"))
+                        seleccion_multiple="void";
+                    else{
+                        System.out.println("\nError Semantico : *** Tipos incompatibles, la estructura \"case\" requiere una expresion de tipo integer. Se encontro una expresion de tipo "+tipo_dato.get_nombre_tipo()+" *** Linea "+token.get_linea_programa());
+                        System.exit(1);
+                    }
+                }else{
+                    System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
+                    System.exit(1);
+                }
+                
                 this.preanalisis++;
+            }
             
         match("of");
         
@@ -1182,24 +1319,69 @@ public class Semantico {
             ; //Presencia de cadena nula. Determina el fin de las opciones del case sin punto y coma.
     }
     
-    private void read (){
+    private void read (TablaSimbolos ts){
+        String procedimiento_es="";
+        String tipo="";
+        
         match("(");
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         
         if(identificador(token))
             this.preanalisis++;
         
+        //--- Esquema de traduccion ---
+        Simbolo simbolo=this.obtener_valor(ts, token);
+        if(simbolo != null){
+            if(simbolo instanceof Variable){
+                TipoDato tipo_dato=(TipoDato)((Variable)simbolo).get_tipo_dato();
+                if(tipo_dato.get_nombre_tipo().equalsIgnoreCase("integer"))
+                    procedimiento_es="";
+                else{
+                    System.out.println("\nError Semantico : *** Tipos incompatibles, el precedimiento de entrada-salida \"read\" requiere como argumento una variable de tipo integer. Se encontro una variable de tipo "+tipo_dato.get_nombre_tipo()+" *** Linea "+token.get_linea_programa());
+                    System.exit(1);
+                }
+            }else{
+                if(simbolo instanceof Constante){
+                    System.out.println("\nError Semantico : *** No es posible modificar el contenido de una CONSTANTE en tiempo de ejecucion *** Linea "+token.get_linea_programa());
+                    System.exit(1);
+                }else{
+                    if(simbolo instanceof Registro)
+                        tipo="REGISTRO";
+                    if(simbolo instanceof Funcion)
+                        tipo="FUNCION";
+                    if(simbolo instanceof Procedimiento)
+                        tipo="PROCEDIMIENTO";
+                    if(simbolo instanceof Subrango)
+                        tipo="SUBRANGO";
+                    if(simbolo instanceof Enumeracion)
+                        tipo="ENUEMRACION";
+                    if(simbolo instanceof TipoDato)
+                        tipo="TIPO DEFINIDO POR EL USUARIO";
+                    
+                    System.out.println("\nError Semantico : *** El procedimiento de entrada-salida \"read\" requiere unicamente variables de tipo integer. Se encontro un elemento de tipo "+tipo+" *** Linea "+token.get_linea_programa());
+                }
+            }
+        }else{
+            System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
+            System.exit(1);
+        }
+        
         match(")");
     }
     
-    private void write (){
+    private void write (TablaSimbolos ts){
         match("(");
         
-        expresion();
+        String expresion_tipo="";
+        expresion(ts, expresion_tipo);
+        
+        //--- Esquema de traduccion ---
         
         match(")");
     }
     
+    //--- POR EL MOMENTO NO SE UTILIZA ---
+    /*
     private void exp (){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         char c;
@@ -1309,47 +1491,78 @@ public class Semantico {
                         }
         }
     }
+    */
+    
+    private void succ (TablaSimbolos ts, String succ_tipo){
+        Token token=null;
         
-    private void succ (){
         match("(");
         
-        expresion();
+        String expresion_tipo="";
+        expresion(ts, expresion_tipo);
+        
+        //--- Esquema de traduccion ---
+        if(expresion_tipo.equalsIgnoreCase("integer") || expresion_tipo.equalsIgnoreCase("boolean"))
+            succ_tipo=expresion_tipo;
+        else{
+            token=this.tokens_sintacticos.get(this.preanalisis);
+            System.out.println("\nError Semantico : *** Tipos incompatibles, la funcion \"succ\" requiere un argumento de tipo integer o boolean. Se encontro un elemento de tipo "+expresion_tipo.toUpperCase()+" *** Linea "+token.get_linea_programa());
+            System.exit(1);
+        }
         
         match(")");
     }
     
-    private void pred (){
+    private void pred (TablaSimbolos ts, String pred_tipo){
+        Token token=null;
+        
         match("(");
         
-        expresion();
+        String expresion_tipo="";
+        expresion(ts, expresion_tipo);
+        
+        //--- Esquema de traduccion ---
+        if(expresion_tipo.equalsIgnoreCase("integer") || expresion_tipo.equalsIgnoreCase("boolean"))
+            pred_tipo=expresion_tipo;
+        else{
+            token=this.tokens_sintacticos.get(this.preanalisis);
+            System.out.println("\nError Semantico : *** Tipos incompatibles, la funcion \"pred\" requiere un argumento de tipo intege o boolean. Se encontro un elemento de tipo "+expresion_tipo.toUpperCase()+" *** Linea "+token.get_linea_programa());
+            System.exit(1);
+        }
         
         match(")");
     }
     
-    private void args (ArrayList<Parametro> argumentos){
+    private void args (TablaSimbolos ts, ArrayList<Parametro> argumentos){
         Token token;
-        argumento(argumentos);
+        argumento(ts, argumentos);
         
         token=this.tokens_sintacticos.get(this.preanalisis);
         
         if(token.get_lexema().equalsIgnoreCase(",")){
             this.preanalisis++;
-            args(argumentos);
+            args(ts, argumentos);
         }else
             ;
     }
     
-    private void argumento (ArrayList<Parametro> argumentos){
+    private void argumento (TablaSimbolos ts, ArrayList<Parametro> argumentos){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         
         switch(token.get_lexema()){
             //--- Constante Booleana ---
             case "true"    :
             case "false"   : this.preanalisis++;
+                             argumentos.add(new Parametro(token.get_lexema(), new TipoDato("boolean","primitivo")));
                              break;
             
             default : //exp();
-                      expresion();
+                      //    En esta seccion solamnete nos interesa en tipo de cada argumento.
+                      String expresion_tipo="";
+                      expresion(ts, expresion_tipo);
+                      
+                      //--- Esquema de traduccion ---
+                      argumentos.add(new Parametro("expresion compuesta", new TipoDato(expresion_tipo, "no se")));
         }
     }
     
@@ -1358,39 +1571,96 @@ public class Semantico {
     //-----------------------------------------------------------------------------------
     
     private void expresion (TablaSimbolos ts, String expresion_tipo){
-        T(ts);E1(ts);
+        String t_tipo="";
+        String e1_tipo="";
+        
+        T(ts, t_tipo);E1(ts, e1_tipo);
+        
+        //--- Esquema de traduccion ---
+        if(t_tipo.equalsIgnoreCase(e1_tipo))
+            expresion_tipo=t_tipo;
+        else{
+            System.out.println("\nError Semantico : *** Tipos incompatibles *** Linea ");
+            System.exit(1);
+        }
     }
     
-    private void T (TablaSimbolos ts){
-        F(ts);T1(ts);
+    private void T (TablaSimbolos ts, String t_tipo){
+        String f_tipo="";
+        String t1_tipo="";
+        
+        F(ts, f_tipo);T1(ts, f_tipo, t1_tipo);
+        
+        //--- Esquema de traduccion ---
+        if(f_tipo.equalsIgnoreCase(t1_tipo))
+            t_tipo=f_tipo;
+        else{
+            System.out.println("\nError Semantico : *** Tipos incompatibles *** Linea ");
+            System.exit(1);
+        }
     }
     
-    private void F (TablaSimbolos ts){
+    private void F (TablaSimbolos ts, String f_tipo){
+        String g_tipo="";
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         if(token.get_lexema().equalsIgnoreCase("not")){
-            this.preanalisis++;G(ts);
-        }else
-            G(ts);
+            this.preanalisis++;G(ts, g_tipo);
+            
+            //--- Esquema de traduccion ---
+            if(g_tipo.equalsIgnoreCase("boolean"))
+                f_tipo="boolean";
+            else{
+                System.out.println("\nError Semantico : *** Tipos incompatibles *** Linea ");
+                System.exit(1);
+            }
+        }else{
+            G(ts, g_tipo);
+            
+            f_tipo=g_tipo;
+        }
     }
     
-    private void G (TablaSimbolos ts){
-        H(ts);G1(ts);
+    private void G (TablaSimbolos ts, String g_tipo){
+        String h_tipo="";
+        String g1_tipo="";
+        
+        H(ts, h_tipo);G1(ts, h_tipo, g1_tipo);
+        
+        //--- Esquema de traduccion ---
+        if(h_tipo.equalsIgnoreCase(g1_tipo))
+            g_tipo=h_tipo;
+        else{
+            System.out.println("\nError Semantico : *** Tipos incompatibles *** Linea ");
+            System.exit(1);
+        }
     }
     
-    private void H (TablaSimbolos ts){
-        I(ts);H1(ts);
+    private void H (TablaSimbolos ts, String h_tipo){
+        String i_tipo="";
+        String h1_tipo="";
+        
+        I(ts, i_tipo);H1(ts, i_tipo, h1_tipo);
+        
+        //--- Esquema de traduccion ---
+        if(i_tipo.equalsIgnoreCase(h1_tipo))
+            h_tipo=i_tipo;
+        else{
+            System.out.println("\nError Semantico : *** Tipos incompatibles *** Linea ");
+            System.exit(1);
+        }
     }
     
     private void I (TablaSimbolos ts, String i_tipo){
         String j_tipo="";
         String i1_tipo="";
         
-        J(ts, j_tipo);I1(ts, i1_tipo);
+        J(ts, j_tipo);I1(ts, j_tipo, i1_tipo);
         
+        //--- Esquema de traduccion ---
         if(j_tipo.equalsIgnoreCase(i1_tipo))
             i_tipo=j_tipo;
         else{
-            System.out.println("\nError Semantico : *** *** Linea ");
+            System.out.println("\nError Semantico : *** Tipos incompatibles *** Linea ");
             System.exit(1);
         }
     }
@@ -1406,9 +1676,13 @@ public class Semantico {
             if(k_tipo.equalsIgnoreCase("integer"))
                 j_tipo="integer";
             else{
-                token=this.tokens_sintacticos.get(this.preanalisis);
-                System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" debe ser de tipo integer *** Linea "+token.get_linea_programa());
-                System.exit(1);
+                if(k_tipo.equalsIgnoreCase("boolean"))
+                    j_tipo="boolean";
+                else{
+                    token=this.tokens_sintacticos.get(this.preanalisis);
+                    System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" debe ser de tipo integer o boolean *** Linea "+token.get_linea_programa());
+                    System.exit(1);
+                }
             }
         }else{
             K(ts, k_tipo);
@@ -1417,31 +1691,50 @@ public class Semantico {
         }
     }
     
-    private void I1 (TablaSimbolos ts){
+    private void I1 (TablaSimbolos ts, String j_tipo, String i1_tipo){
+        
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         switch(token.get_lexema()){
             case "*" :
             case "/" : this.preanalisis++;
-                       J(ts);
-                       I1(ts);
+                       J(ts, j_tipo);
+                       I1(ts, j_tipo, i1_tipo);
+                       
+                       //--- Esquema de traduccion ---
+                       if(i1_tipo.equalsIgnoreCase("void")){
+                           if(j_tipo.equalsIgnoreCase("integer"))
+                               i1_tipo="integer";
+                           else{
+                               System.out.println("\nError Semantico : *** Tipos incompatibles, el operador "+token.get_lexema()+" requiere un operando de tipo integer, se sintetizo el tipo boolean *** Linea "+token.get_linea_programa());
+                               System.exit(1);
+                           }
+                       }else{
+                           if(j_tipo.equalsIgnoreCase("integer"))
+                               i1_tipo="integer";
+                           else{
+                               System.out.println("\nError Semantico : *** Tipos incompatibles, el operador "+token.get_lexema()+" requiere un operando de tipo integer, se sintetizo el tipo boolean *** Linea "+token.get_linea_programa());
+                               System.exit(1);
+                           }
+                       }
                        break;
-            default : ; //Presencia de cadenanula.
+            default : //; //Presencia de cadena nula.
+                      i1_tipo="void";
         }
     }
     
-    private void H1 (TablaSimbolos ts){
+    private void H1 (TablaSimbolos ts, String i_tipo, String h1_tipo){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         switch(token.get_lexema()){
             case "+" :
             case "-" : this.preanalisis++;
-                       I(ts);
-                       H1(ts);
+                       I(ts, i_tipo);
+                       H1(ts, i_tipo, h1_tipo);
                        break;
             default : ; //Presencia de cadena nula.
         }
     }
     
-    private void G1 (TablaSimbolos ts){
+    private void G1 (TablaSimbolos ts, String h_tipo, String g1_tipo){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         switch(token.get_lexema()){
             case ">"  :
@@ -1450,30 +1743,46 @@ public class Semantico {
             case "<=" :
             case "="  :
             case "<>" : this.preanalisis++;
-                        H(ts);
-                        G1(ts);
+                        H(ts, h_tipo);
+                        G1(ts, h_tipo, g1_tipo);
             default : ; //Presencia de cadena nula.
         }
     }
     
-    private void T1 (TablaSimbolos ts){
+    private void T1 (TablaSimbolos ts, String f_tipo, String t1_tipo){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         if(token.get_lexema().equalsIgnoreCase("and")){
             this.preanalisis++;
-            F(ts);
-            T1(ts);
+            F(ts, f_tipo);
+            T1(ts, f_tipo, t1_tipo);
         }else
             ; //Presencia de cadena nula.
     }
     
-    private void E1 (TablaSimbolos ts){
+    private void E1 (TablaSimbolos ts, String e1_tipo){
+        String t_tipo="";
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         if(token.get_lexema().equalsIgnoreCase("or")){
             this.preanalisis++;
-            T(ts);
-            E1(ts);
-        }else
-            ; //Presencia de cadena nula.
+            T(ts, t_tipo);
+            E1(ts, e1_tipo);
+            
+            //--- Esquema de traduccion ---
+            if(e1_tipo.equalsIgnoreCase("void")){
+                if(t_tipo.equalsIgnoreCase("boolean"))
+                    e1_tipo="boolean";
+                else{
+                    System.out.println("\nError Semantico : *** Tipos incompatibles *** Linea");
+                    System.exit(1);
+                }
+            }else{
+                
+            }
+            
+        }else{
+            //; //Presencia de cadena nula.
+            e1_tipo="void";
+        }
     }
     
     private void K (TablaSimbolos ts, String k_tipo){
@@ -1515,9 +1824,10 @@ public class Semantico {
                                         System.exit(1);
                                      }
                                      
+                                     //   Estructura para guardar el tipo de los argumentos.
                                      ArrayList<Parametro> argumentos=new ArrayList();
                                      this.preanalisis++;
-                                     args(argumentos);
+                                     args(ts, argumentos);
                                      
                                      //   Verificamos cantidad y tipos de parametros para una Funcion o Procedimiento.
                                      if(simbolo instanceof Funcion)

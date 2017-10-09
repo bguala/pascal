@@ -25,6 +25,12 @@ public class TipoDato extends Simbolo {
         this.caracteristica=caracteristica;
     }
     
+    public TipoDato (String tipo_base, String caracteristica){
+        super("", 1);
+        this.tipo_base=tipo_base;
+        this.caracteristica=caracteristica;
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------

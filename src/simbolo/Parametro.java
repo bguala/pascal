@@ -25,6 +25,12 @@ public class Parametro {
         this.tipo_dato=tipo_dato;
     }
     
+    public Parametro (String lexema, Simbolo tipo_dato){
+        this.parametro_formal=new ArrayList();
+        this.parametro_formal.add(lexema);
+        this.tipo_dato=tipo_dato;
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
