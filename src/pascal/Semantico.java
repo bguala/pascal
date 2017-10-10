@@ -1032,6 +1032,10 @@ public class Semantico {
                         ArrayList<Parametro> argumentos=new ArrayList();
                         
                         switch(token.get_lexema()){
+                            case "."  : //--- Acceso a registro, asignacion ---
+                                        break;
+                            case "["  : //--- Acceso a arreglo, asignacion ---
+                                        break;
                             case ":=" : //--- Asignacion ---
                                         
                                         //  Podemos asignar true, false o una expresion que puede ser acceso a arreglo-registro, llamada a subprograma
@@ -1610,7 +1614,7 @@ public class Semantico {
             if(g_tipo.equalsIgnoreCase("boolean"))
                 f_tipo="boolean";
             else{
-                System.out.println("\nError Semantico : *** Tipos incompatibles *** Linea ");
+                System.out.println("\nError Semantico : *** Tipos incompatibles, el operador \"not\" requiere un operando de tipo boolean. Precede a un operando de tipo "+g_tipo+" *** Linea "+token.get_linea_programa());
                 System.exit(1);
             }
         }else{
@@ -1705,17 +1709,18 @@ public class Semantico {
                            if(j_tipo.equalsIgnoreCase("integer"))
                                i1_tipo="integer";
                            else{
-                               System.out.println("\nError Semantico : *** Tipos incompatibles, el operador "+token.get_lexema()+" requiere un operando de tipo integer, se sintetizo el tipo boolean *** Linea "+token.get_linea_programa());
-                               System.exit(1);
-                           }
-                       }else{
-                           if(j_tipo.equalsIgnoreCase("integer"))
-                               i1_tipo="integer";
-                           else{
-                               System.out.println("\nError Semantico : *** Tipos incompatibles, el operador "+token.get_lexema()+" requiere un operando de tipo integer, se sintetizo el tipo boolean *** Linea "+token.get_linea_programa());
+                               System.out.println("\nError Semantico : *** Tipos incompatibles, el operador "+token.get_lexema()+" requiere un operando de tipo integer, se sintetizo el tipo "+j_tipo+" *** Linea "+token.get_linea_programa());
                                System.exit(1);
                            }
                        }
+//                       else{
+//                           if(j_tipo.equalsIgnoreCase("integer"))
+//                               i1_tipo="integer";
+//                           else{
+//                               System.out.println("\nError Semantico : *** Tipos incompatibles, el operador "+token.get_lexema()+" requiere un operando de tipo integer, se sintetizo el tipo "+j_tipo+" *** Linea "+token.get_linea_programa());
+//                               System.exit(1);
+//                           }
+//                       }
                        break;
             default : //; //Presencia de cadena nula.
                       i1_tipo="void";
@@ -1729,8 +1734,20 @@ public class Semantico {
             case "-" : this.preanalisis++;
                        I(ts, i_tipo);
                        H1(ts, i_tipo, h1_tipo);
+                       
+                       //--- Esquema de traduccion ---
+                       if(h1_tipo.equalsIgnoreCase("void")){
+                           if(i_tipo.equalsIgnoreCase("integer"))
+                               h1_tipo="integer";
+                           else{
+                               System.out.println("\nError Semantico : *** Tipos incompatibles, el operador "+token.get_lexema()+" requiere operandos de tipo integer. Se encontro un operando de tipo "+i_tipo+" *** Linea "+token.get_linea_programa());
+                               System.exit(1);
+                           }
+                       }
+                       
                        break;
-            default : ; //Presencia de cadena nula.
+            default : //; //Presencia de cadena nula.
+                      h1_tipo="void";
         }
     }
     
@@ -1745,7 +1762,20 @@ public class Semantico {
             case "<>" : this.preanalisis++;
                         H(ts, h_tipo);
                         G1(ts, h_tipo, g1_tipo);
-            default : ; //Presencia de cadena nula.
+                        
+                        //--- Esquema de traduccion ---
+                        if(g1_tipo.equalsIgnoreCase("void")){
+                            if(h_tipo.equalsIgnoreCase("integer"))
+                                g1_tipo="boolean";
+                            else{
+                                System.out.println("\nError Semantico : *** Tipos incompatibles, el operador relacional "+token.get_lexema()+" requiere operandos de tipo integer. Se encontro un operando de tipo "+h_tipo+" *** Linea "+token.get_linea_programa());
+                                System.exit(1);
+                            }
+                        }else
+                            ;//Que pasa si g1_tipo no es void???. Esto no es posible porque solamente la regla G1 genera exp relacionales.
+                        
+            default : //; //Presencia de cadena nula.
+                      g1_tipo="void";
         }
     }
     
@@ -1755,8 +1785,18 @@ public class Semantico {
             this.preanalisis++;
             F(ts, f_tipo);
             T1(ts, f_tipo, t1_tipo);
-        }else
-            ; //Presencia de cadena nula.
+            
+            //--- Esquema de traduccion ---
+            if(t1_tipo.equalsIgnoreCase("void")){
+                if(f_tipo.equalsIgnoreCase("boolean"))
+                    t1_tipo="boolean";
+                else{
+                    System.out.println("\nError Semantico : *** Tipos incompatibles, el operador \"and\" requiere operandos de tipo boolean. Se encontro un operando de tipo "+t1_tipo+" *** Linea "+token.get_linea_programa());
+                    System.exit(1);
+                }
+            }
+        }else//; //Presencia de cadena nula.
+            t1_tipo="void";
     }
     
     private void E1 (TablaSimbolos ts, String e1_tipo){
@@ -1772,11 +1812,9 @@ public class Semantico {
                 if(t_tipo.equalsIgnoreCase("boolean"))
                     e1_tipo="boolean";
                 else{
-                    System.out.println("\nError Semantico : *** Tipos incompatibles *** Linea");
+                    System.out.println("\nError Semantico : *** Tipos incompatibles, el operador \"or\" requiere operandos de tipo boolean. Se encontro un operando de tipo "+e1_tipo+" *** Linea");
                     System.exit(1);
                 }
-            }else{
-                
             }
             
         }else{
