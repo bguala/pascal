@@ -50,14 +50,16 @@ public class Pascal {
                                
                                System.out.println("\n *** Analisis sintactico exitoso *** ");
                                break;
-                    case 'c' : System.out.println("\nIniciando proceso de compilacion....\n\n");
+                    case 'c' : 
                                lexico=new Lexico(archivo);
                                lexico.analisis_lexico();
                                lexico.guardar_tokens();
                                        
-//                               Semantico semantico=new Semantico (lexico.get_tokens_sintacticos(),TS);
-//                               semantico.analisis_semantico();
+                               Semantico semantico=new Semantico (lexico.get_tokens_sintacticos(),lexico.get_palabras_reservadas(), archivo);
+                               semantico.analisis_semantico();
                                    
+                               System.out.println("\n *** Analisis semantico exitoso *** ");
+                               
                                break;
 
                     default : System.out.println("\nOpcion incorrecta!. Ejecute java -jar pascal.jar -b para acceder al manual de usuario.\n");
@@ -106,11 +108,11 @@ public class Pascal {
                            + " para comprobar que la cadena estatica del programa fuente se \n\t"
                            + " crea correctamente y que cada tabla de simbolos contiene el \n\t"
                            + " entorno local de cada subprograma.");
-        System.out.println("\n\n\t -m\n");
+        System.out.println("\n\n\t -c\n");
         System.out.println("\t analisis semantico. Implementa un componente verificador de tipos. \n\t"
                            + " Produce dos archivos de texto, los tokens generados por el analizador\n\t"
                            + " lexico y las tablas de simbolos con la informacion definitiva de cada \n\t ambiente.");
-        System.out.println("\n\n\t -c\n");
+        System.out.println("\n\n\t -g\n");
         System.out.println("\t proceso de compilacion completo, incluye fase de generacion de codigo \n\t"
                            + " intermedio. Genera un archivo con extensión mep.");
         System.out.println("\n\n\t -v\n");

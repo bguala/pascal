@@ -103,24 +103,24 @@ public class Funcion extends Simbolo {
     * argumentos: contiene todos los argumentos presentes en una llamada a funcion.
     */
     public String chequeo_de_tipos (Token id, ArrayList<Parametro> argumentos){
-        int n=this.lista_parametros.size();
-        int m=argumentos.size();
-        String error="";
+        int n=cantidad_args(this.lista_parametros);
+        int m=cantidad_args(argumentos);
+        Strings error=new Strings(" ");
         
         if(n != m){
-            System.out.println("\nError Semantico : *** La cantidad de argumentos especificados en \""+id.get_lexema()+"\" no coinciden con la cantidad de parametros formales presentes en su definicion : "+this.a_cadena()+" *** Linea "+id.get_lexema());
+            System.out.println("\nError Semantico : *** La cantidad de argumentos especificados en \""+id.get_lexema()+"\" no coinciden con la cantidad de parametros formales presentes en su definicion : "+n+" *** Linea "+id.get_linea_programa());
             System.exit(1);
         }
         
         if(!coinciden_tipos(argumentos, error)){
-            System.out.println(error+id.get_linea_programa());
+            System.out.println(error.get_string()+id.get_linea_programa());
             System.exit(1);
         }
         
         return ((TipoDato)this.tipo_retorno).get_nombre_tipo();
     }
     
-    private boolean coinciden_tipos (ArrayList<Parametro> argumentos, String error){
+    private boolean coinciden_tipos (ArrayList<Parametro> argumentos, Strings error){
         int n=argumentos.size();
         TipoDato tipo_param=null;
         TipoDato tipo_arg=null;
@@ -133,12 +133,26 @@ public class Funcion extends Simbolo {
             
             if(!(tipo_param.get_nombre_tipo().equalsIgnoreCase(tipo_arg.get_nombre_tipo()))){
                 fin=false;
-                error="\nError Semantico: *** Tipos incompatibles, "+this.lista_parametros.get(i).a_cadena()+", mientras que "+argumentos.get(i).a_cadena()+" *** Linea ";
+                TipoDato td=(TipoDato)this.lista_parametros.get(i).get_tipo_dato();
+                
+                String param=this.lista_parametros.get(i).get_parametro_formal().get(0);
+                error.set_string("\nError Semantico: *** Tipos incompatibles, la funcion "+this.lexema+" posee un parametro formal "+param+" de tipo "+td.get_nombre_tipo()+", sin embargo en su llamada existe un argumento de tipo "+tipo_arg.get_nombre_tipo()+" en la misma posicion *** Linea ");
             }
             
             i++;
         }
         
         return fin;
+    }
+    
+    private int cantidad_args (ArrayList<Parametro> argumentos){
+        int n=0;
+        int i;
+        
+        for(i=0; i<argumentos.size(); i++){
+            n += argumentos.get(i).get_parametro_formal().size();
+        }
+        
+        return n;
     }
 }

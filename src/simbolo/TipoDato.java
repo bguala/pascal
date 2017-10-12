@@ -12,7 +12,7 @@ package simbolo;
 public class TipoDato extends Simbolo {
     
     private String nombre_tipo; //Guarda el nombre de tipo, ej: entero, integer, boolean, racional etc.
-    private String tipo_base; //Integer o boolean.
+    //private String tipo_base; //Integer o boolean.
     private String caracteristica; //Primitivo o definido por el usuario.
     
     //-----------------------------------------------------------------------------------
@@ -21,13 +21,13 @@ public class TipoDato extends Simbolo {
     
     public TipoDato (String lexema, int espacio_asignado,String tipo_base, String caracteristica){
         super(lexema,espacio_asignado); //El nombre del nuevo tipo se guarda en lexema (Simbolo)
-        this.tipo_base=tipo_base;
+        this.nombre_tipo=tipo_base;
         this.caracteristica=caracteristica;
     }
     
     public TipoDato (String tipo_base, String caracteristica){
         super("", 1);
-        this.tipo_base=tipo_base;
+        this.nombre_tipo=tipo_base;
         this.caracteristica=caracteristica;
     }
     
@@ -40,7 +40,7 @@ public class TipoDato extends Simbolo {
     }
     
     public String get_nombre_tipo (){
-        return this.nombre_tipo;
+        return this.lexema;
     }
     
     //-----------------------------------------------------------------------------------
