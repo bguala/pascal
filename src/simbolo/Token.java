@@ -25,6 +25,12 @@ public class Token {
         this.linea_programa=linea_programa;
     }
     
+    public Token (String lexema){
+        this.lexema=lexema;
+        this.nombre_token="";
+        this.linea_programa=0;
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------

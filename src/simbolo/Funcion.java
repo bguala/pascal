@@ -103,6 +103,8 @@ public class Funcion extends Simbolo {
     * argumentos: contiene todos los argumentos presentes en una llamada a funcion.
     */
     public String chequeo_de_tipos (Token id, ArrayList<Parametro> argumentos){
+        this.lista_parametros=this.unificar_parametros_formales();
+        
         int n=cantidad_args(this.lista_parametros);
         int m=cantidad_args(argumentos);
         Strings error=new Strings(" ");
@@ -136,7 +138,7 @@ public class Funcion extends Simbolo {
                 TipoDato td=(TipoDato)this.lista_parametros.get(i).get_tipo_dato();
                 
                 String param=this.lista_parametros.get(i).get_parametro_formal().get(0);
-                error.set_string("\nError Semantico: *** Tipos incompatibles, la funcion "+this.lexema+" posee un parametro formal "+param+" de tipo "+td.get_nombre_tipo()+", sin embargo en su llamada existe un argumento de tipo "+tipo_arg.get_nombre_tipo()+" en la misma posicion *** Linea ");
+                error.set_string("\nError Semantico: *** Tipos incompatibles, la funcion \""+this.lexema+"\" posee un parametro formal \""+param+"\" de tipo "+td.get_nombre_tipo()+", sin embargo en su llamada existe un argumento de tipo "+tipo_arg.get_nombre_tipo()+" en la misma posicion *** Linea ");
             }
             
             i++;
@@ -154,5 +156,27 @@ public class Funcion extends Simbolo {
         }
         
         return n;
+    }
+    
+    private ArrayList<Parametro> unificar_parametros_formales (){
+        ArrayList<Parametro> parametros=new ArrayList();
+        //Contiene los parametros que debemos unificar en un solo ArrayList.
+        ArrayList<String> params;
+        int n=this.lista_parametros.size();
+        int m=0;
+        int i,j;
+        //Para los parametros formales.
+        for(i=0; i<n; i++){
+            
+            params=this.lista_parametros.get(i).get_parametro_formal();
+            m=this.lista_parametros.get(i).get_parametro_formal().size();
+            //Para los paramteros formales internos.
+            for(j=0; j<m; j++){
+                parametros.add(new Parametro(params.get(j),this.lista_parametros.get(i).get_tipo_dato()));
+            }
+            
+        }
+        
+        return parametros;
     }
 }

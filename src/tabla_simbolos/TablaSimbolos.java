@@ -19,6 +19,7 @@ public class TablaSimbolos {
     
     private HashMap<String,Simbolo> tabla_simbolos;
     private int id_entorno;
+    private String propietario;
     
     //Para implementar cadena estatica.
     private TablaSimbolos superior;
@@ -60,6 +61,10 @@ public class TablaSimbolos {
     
     public TablaSimbolos get_ts_superior (){
         return this.superior;
+    }
+    
+    public String get_propietario (){
+        return this.propietario;
     }
     
     //-----------------------------------------------------------------------------------
@@ -124,6 +129,16 @@ public class TablaSimbolos {
         encabezado="ID ENTORNO: "+this.id_entorno+"\n"+" ID ENTORNO SUPERIOR: "+superior+"\n";
         
         return "\n\n"+separacion+"\n\n"+encabezado+"\n"+cadena+"\n"+separacion;
+    }
+    
+    public ArrayList<Parametro> obtener_parametros_formales (){
+        Simbolo s=this.get(propietario);
+        
+        if(s != null){
+            
+        } 
+        
+        return null;
     }
     
 }
