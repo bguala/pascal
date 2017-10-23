@@ -42,7 +42,7 @@ public class Sintactico {
         this.palabras_reservadas.add("or");
         this.palabras_reservadas.add("not");
         
-        this.tabla_simbolos=new TablaSimbolos(0);
+        this.tabla_simbolos=new TablaSimbolos(0,"");
     }
     
     //-----------------------------------------------------------------------------------
@@ -154,6 +154,10 @@ public class Sintactico {
         match("program");
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         identificador(token); //No avanza preanalisis.
+        
+        //Configuramos la TS PRINCIPAL con el nombre del programa principal como propietario.
+        this.tabla_simbolos.set_propietario(token.get_lexema());
+        
         this.preanalisis++;
         match(";");
     }
@@ -837,7 +841,7 @@ public class Sintactico {
         Token token;
         String id="";
         //Para guardar el entorno local del subprograma.
-        ts_local=new TablaSimbolos(this.id_entorno);
+        ts_local=new TablaSimbolos(this.id_entorno,"");
         this.id_entorno++;
         
         token=this.tokens_sintacticos.get(this.preanalisis);
@@ -846,6 +850,9 @@ public class Sintactico {
             this.preanalisis++;
             id=token.get_lexema();
         }
+        
+        //Configuramos la TS LOCAL con el nombre de funcion como propietario.
+        ts_local.set_propietario(id);
         
         match("(");
         
@@ -913,7 +920,7 @@ public class Sintactico {
         Token token;
         String id="";
         
-        ts_local=new TablaSimbolos(this.id_entorno);
+        ts_local=new TablaSimbolos(this.id_entorno,"");
         this.id_entorno++;
         token=this.tokens_sintacticos.get(this.preanalisis);
         
@@ -921,6 +928,9 @@ public class Sintactico {
             this.preanalisis++;
             id=token.get_lexema();
         }
+        
+        //Configuramos la TS LOCAL con el nombre del procedimiento como propietario.
+        ts_local.set_propietario(id);
         
         token=this.tokens_sintacticos.get(this.preanalisis);
         if(token.get_lexema().equalsIgnoreCase(";"))//En este caso se omiten parametros formales.

@@ -43,6 +43,27 @@ public class Parametro {
         return this.tipo_dato;
     }
     
+    public Simbolo obtener_parametro (String parametro){
+        String st="";
+        Simbolo s=null;
+        int i=0;
+        int n=this.parametro_formal.size();
+        boolean fin=false;
+        
+        while(i<n && !fin){
+            st=this.parametro_formal.get(i);
+            if(st.equalsIgnoreCase(parametro)){
+                s=this.tipo_dato;
+                fin=true;
+            }
+            
+            i++;
+        }
+        
+        return s;
+        
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- Modificadores -----------------------------------------------------------------
     //-----------------------------------------------------------------------------------

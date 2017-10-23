@@ -44,7 +44,7 @@ public class Semantico {
         this.palabras_reservadas.add("or");
         this.palabras_reservadas.add("not");
         
-        this.tabla_simbolos=new TablaSimbolos(0);
+        this.tabla_simbolos=new TablaSimbolos(0,"");
     }
     
     //-----------------------------------------------------------------------------------
@@ -156,6 +156,10 @@ public class Semantico {
         match("program");
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         identificador(token); //No avanza preanalisis.
+        
+        //Configuramos la TS PRINCIPAL con el nombre del programa principal como propietario.
+        this.tabla_simbolos.set_propietario(token.get_lexema());
+        
         this.preanalisis++;
         match(";");
     }
@@ -839,7 +843,7 @@ public class Semantico {
         Token token;
         String id="";
         //Para guardar el entorno local del subprograma.
-        ts_local=new TablaSimbolos(this.id_entorno);
+        ts_local=new TablaSimbolos(this.id_entorno,"");
         this.id_entorno++;
         
         token=this.tokens_sintacticos.get(this.preanalisis);
@@ -848,6 +852,9 @@ public class Semantico {
             this.preanalisis++;
             id=token.get_lexema();
         }
+        
+        //Configuramos la TS LOCAL con el nombre de la funcion como propietario.
+        ts_local.set_propietario(id);
         
         match("(");
         
@@ -920,7 +927,7 @@ public class Semantico {
         Token token;
         String id="";
         
-        ts_local=new TablaSimbolos(this.id_entorno);
+        ts_local=new TablaSimbolos(this.id_entorno,"");
         this.id_entorno++;
         token=this.tokens_sintacticos.get(this.preanalisis);
         
@@ -928,6 +935,9 @@ public class Semantico {
             this.preanalisis++;
             id=token.get_lexema();
         }
+        
+        //Configuramos la TS LOCAL con el nombre del procedimiento como propietario.
+        ts_local.set_propietario(id);
         
         token=this.tokens_sintacticos.get(this.preanalisis);
         if(token.get_lexema().equalsIgnoreCase(";")){//En este caso se omiten parametros formales.
@@ -1068,24 +1078,34 @@ public class Semantico {
                                                     System.exit(1);
                                                 }
                                             }else{
-                                                if(simbolo instanceof Constante){
-                                                    System.out.println("\nError Semantico : *** No es posible modificar el contenido de una CONSTANTE en tiempo de ejecucion *** Linea "+token.get_linea_programa());
-                                                    System.exit(1);
-                                                }else{
-                                                    if(simbolo instanceof Registro)
-                                                        var="REGISTRO";
-                                                    if(simbolo instanceof Funcion)
-                                                        var="FUNCION";
-                                                    if(simbolo instanceof Procedimiento)
-                                                        var="PROCEDIMIENTO";
-                                                    if(simbolo instanceof Enumeracion)
-                                                        var="ENUMERACION";
-                                                    if(simbolo instanceof Subrango)
-                                                        var="SUBRANGO";
-                                                    
-                                                    System.out.println("\nError Semantico : *** No es posible realizar asignaciones en identificadores de tipo "+var+" *** Linea "+tk.get_linea_programa());
-                                                    System.exit(1);
-                                                }
+                                                if(simbolo instanceof TipoDato){
+                                                    tipo=((TipoDato)argumentos.get(0).get_tipo_dato()).get_nombre_tipo();
+                                                    String tipo_izq=((TipoDato)simbolo).get_nombre_tipo();
+                                                    if(tipo.equalsIgnoreCase(tipo_izq))
+                                                        sentencia_tipo.set_string(tipo);
+                                                    else{
+                                                        System.out.println("\nError Semantico : *** Tipos incompatibles, esta intentando asignar una expresion de tipo "+tipo+", en una variable de tipo "+tipo_izq+" *** Linea "+tk.get_linea_programa());
+                                                        System.exit(1);
+                                                    }
+                                                }else
+                                                    if(simbolo instanceof Constante){
+                                                        System.out.println("\nError Semantico : *** No es posible modificar el contenido de una CONSTANTE en tiempo de ejecucion *** Linea "+token.get_linea_programa());
+                                                        System.exit(1);
+                                                    }else{
+                                                        if(simbolo instanceof Registro)
+                                                            var="REGISTRO";
+                                                        if(simbolo instanceof Funcion)
+                                                            var="FUNCION";
+                                                        if(simbolo instanceof Procedimiento)
+                                                            var="PROCEDIMIENTO";
+                                                        if(simbolo instanceof Enumeracion)
+                                                            var="ENUMERACION";
+                                                        if(simbolo instanceof Subrango)
+                                                            var="SUBRANGO";
+
+                                                        System.out.println("\nError Semantico : *** No es posible realizar asignaciones en identificadores de tipo "+var+" *** Linea "+tk.get_linea_programa());
+                                                        System.exit(1);
+                                                    }
                                             }
                                         }else{
                                             System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se encuentra definido *** Linea "+tk.get_linea_programa());
@@ -2065,10 +2085,14 @@ public class Semantico {
                                                       if(simbolo instanceof Constante){
                                                           k_tipo.set_string(((Constante)simbolo).get_tipo());
                                                       }else{
-                                                          if(simbolo instanceof Procedimiento){                                                          
-                                                              System.out.println("\nError Semantico : *** No se puede utilizar un Procedimiento como operando en una expresion aritmetica, relacional o booleana *** linea "+id.get_linea_programa());
-                                                              System.exit(1);
-                                                          }
+                                                          //Significa que se hace referencia a un parametro formal.
+                                                          if(simbolo instanceof TipoDato){
+                                                              k_tipo.set_string(((TipoDato)simbolo).get_nombre_tipo());
+                                                          }else
+                                                              if(simbolo instanceof Procedimiento){                                                         
+                                                                  System.out.println("\nError Semantico : *** No se puede utilizar un Procedimiento como operando en una expresion aritmetica, relacional o booleana *** linea "+id.get_linea_programa());
+                                                                  System.exit(1);
+                                                              }
                                                       }
                                                   }
                                     }
@@ -2095,8 +2119,14 @@ public class Semantico {
             valor=ts.get(token.get_lexema());
             if(valor!=null)
                 fin=true;
-            else
-                ts=ts.get_ts_superior();
+            else{
+                //Buscamos el identificador en la lista de parametros formales del subprograma propietario de la TS LOCAL.
+                valor=ts.obtener_parametro_formal(token);
+                if(valor != null)
+                    fin=true;
+                else//Si no encontramos el identificador en la lista de parametros formales continuemos buscando en la cadena estatica.
+                    ts=ts.get_ts_superior();
+            }
         }
         
         return valor;
