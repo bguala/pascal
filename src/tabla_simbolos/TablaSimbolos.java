@@ -138,7 +138,12 @@ public class TablaSimbolos {
         return "\n\n"+separacion+"\n\n"+encabezado+"\n"+cadena+"\n"+separacion;
     }
     
+    /*
+    * Devuelve el parametro formal de un subprograma que coincide con alguna variable utilizada en una asignacion
+    * o expresion.
+    */
     public Simbolo obtener_parametro_formal (Token token){
+        //Obtenemos los datos relacionados al identificador propietario de la TS, deberia ser un subprograma.
         Simbolo s=this.get(propietario);
         ArrayList<Parametro> params=null;
         Simbolo simbolo=null;
@@ -157,6 +162,7 @@ public class TablaSimbolos {
             fin=false;
             
             while(i<n && !fin){
+                //Obtener parametro devuelve un objeto TipoDato.
                 simbolo=params.get(i).obtener_parametro(token.get_lexema());
                 
                 if(simbolo != null)
@@ -167,6 +173,52 @@ public class TablaSimbolos {
         }
         
         return simbolo;
+    }
+    
+    /*
+    * Devuelve true si las variables que de declaran coinciden con:
+    * a) identificadores definidos previamente que se encuentran dispersos en la TS.
+    * b) paramatros formales pertenecientes al subprograma propietario de la TS.
+    * c) el nombre del subprograma propietario de la TS.
+    * Si ocurren algunas de estas tres condiciones estamos en presencia de un error de unicidad.
+    */
+    public boolean chequeo_de_unicidad (ArrayList<String> identificadores, Strings conflicto){
+        boolean fin=false;
+        Simbolo s=null;
+        String st="";
+        int i=0;
+        int n=identificadores.size();
+        
+        //En primer instancia buscamos identificadores dispersos en la TS.
+        while(i<n && !fin){
+            st=identificadores.get(i);
+            s=this.get(st);
+            
+            if(s != null){
+                fin=true;
+                conflicto.set_string(st);
+            }else{
+                //En segunda instancia buscamos identificadores en los parametros formales del subprograma 
+                //propietario de la TS, si no existen identificadores repetidos.
+                s=this.obtener_parametro_formal(new Token(st));
+                
+                if(s != null){
+                    fin=true;
+                    conflicto.set_string(st);
+                }else{
+                    //En tercer instancia verificamos si las variables que se declaran no coinciden con el nombre del subprograma
+                    //propietario de la TS.
+                    if(st.equalsIgnoreCase(this.propietario)){
+                        fin=true;
+                        conflicto.set_string(st);
+                    }
+                }
+            }
+            
+            i++;
+        }
+        
+        return fin;
     }
     
 }

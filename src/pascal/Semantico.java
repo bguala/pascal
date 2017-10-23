@@ -730,7 +730,16 @@ public class Semantico {
     }
     
     private void variable (TablaSimbolos ts){
+        Strings conflicto=new Strings("");
         ArrayList<String> ids=secuencia_ids();
+        
+        //Chequeo de unicidad.
+        if(ts.chequeo_de_unicidad(ids,conflicto)){
+            Token tk=this.tokens_sintacticos.get(this.preanalisis);
+            System.out.println("\nError Semantico : *** Error de unicidad, el identificador \""+conflicto.get_string()+"\" ya se encuentra definido en el ambiente actual *** Linea "+tk.get_linea_programa());
+            System.exit(1);
+        }
+        
         match(":");
         
         Token token=this.tokens_sintacticos.get(this.preanalisis);
@@ -1414,120 +1423,7 @@ public class Semantico {
         
         match(")");
     }
-    
-    //--- POR EL MOMENTO NO SE UTILIZA ---
-    /*
-    private void exp (){
-        Token token=this.tokens_sintacticos.get(this.preanalisis);
-        char c;
         
-        //--- Posible expresion ---
-        switch(token.get_lexema()){
-            case "-"   : //--- Expresion con - unario ---
-            case "not" : //--- Expresion booleana que empieza con not ---
-            case "("   : //--- Expresion parentizada ---
-                         expresion();
-                         break;
-            default :   //Guardamos el valor actual de preanalisis para no alterar la ejecucion de expresion. Esto puede ocurrir 
-                        //si tenemos una expresion que empieza con una llamada a funcion, ej: a:=fun1(a,b)+10*a;
-                        int copia=this.preanalisis;
-            
-                        c=token.get_lexema().charAt(0);
-                        //--- Identificador ---
-                        if((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(token.get_lexema())){
-                            this.preanalisis++;
-                            token=this.tokens_sintacticos.get(this.preanalisis);
-
-                            switch(token.get_lexema()){
-                                case "(" : //--- Llamada a Subprograma ---
-                                           this.preanalisis++;
-                                           args();
-                                           match(")");
-                                           
-                                           token=this.tokens_sintacticos.get(this.preanalisis);
-                                           switch(token.get_lexema()){
-                                               case "+" :
-                                               case "-" :
-                                               case "*" :
-                                               case "etc" : this.preanalisis++;
-                                                            expresion();
-                                           }
-                                           
-                                           break;
-                                case "." : //--- Acceso a registro ---
-                                           this.preanalisis++;
-                                           token=this.tokens_sintacticos.get(this.preanalisis);
-                                           if(identificador(token))
-                                               this.preanalisis++;
-                                           break;
-                                case "[" : //--- Acceso a arreglo ---
-                                           this.preanalisis++;
-                                           token=this.tokens_sintacticos.get(this.preanalisis);
-
-                                           if(digito(token) || identificador(token))
-                                               this.preanalisis++;
-                                           
-                                           //Si el arreglo posee dos dimensiones :
-                                           //nombre[ fila, columna ]
-
-                                           match("]");
-                                           break;
-
-                                default :  //--- Posible expresion que empieza con un identificador ---
-                                           switch(token.get_lexema()){
-                                               case "+"    : 
-                                               case "-"    : 
-                                               case "*"    :
-                                               case "/"    :
-                                               case "<"    :
-                                               case ">"    :
-                                               case "<="   :
-                                               case ">="   :
-                                               case "<>"   :
-                                               case "and"  :
-                                               case "or"   : //Disminuimos preanalisis para no alterar la ejecucion de expresion
-                                                             //porque antes de consumir el proximo simbolo se ejecutan varias 
-                                                             //llamadas a funciones.
-                                                             this.preanalisis--;
-                                                             expresion();
-                                                             break;
-                                               default : ; //Presencia de cadena nula. Solamente tenemos un identificador. Anteriormente avanzamos el preanalisis.
-                                                         
-                                           }
-                            }
-                        }else{
-                            if(digito(token)){
-                                this.preanalisis++;
-                                token=this.tokens_sintacticos.get(this.preanalisis);
-
-                                //--- Posible expresion que empieza con un digito ---
-                                switch(token.get_lexema()){
-                                    case "+"    : 
-                                    case "-"    : 
-                                    case "*"    :
-                                    case "/"    :
-                                    case "<"    :
-                                    case ">"    :
-                                    case "<="   :
-                                    case ">="   :
-                                    case "<>"   :
-                                    case "and"  :
-                                    case "or"   : //Disminuimos preanalisis para no alterar la ejecucion de expresion
-                                                  //porque antes de consumir el proximo simbolo se ejecutan varias 
-                                                  //llamadas a funciones.
-                                                  this.preanalisis--;
-                                                  expresion();
-                                                  break;
-                                    default : ; //Presencia de cadena nula. Solamente tenemos un digito.
-                                }
-
-                            }else
-                                ; //Presencia de cadena nula. No hay expresiones.
-                        }
-        }
-    }
-    */
-    
     private void succ (TablaSimbolos ts, Strings succ_tipo){
         Token token=null;
         
@@ -1629,7 +1525,7 @@ public class Semantico {
                 System.exit(1);
             }
         
-        System.out.println("En expresion se sintetitiza el tipo expresion_tipo : "+expresion_tipo.get_string());
+        //System.out.println("En expresion se sintetitiza el tipo expresion_tipo : "+expresion_tipo.get_string());
     }
     
     private void T (TablaSimbolos ts, Strings t_tipo){
@@ -1649,8 +1545,8 @@ public class Semantico {
                 System.exit(1);
             }
         
-        System.out.println("En T, f_tipo : "+f_tipo.get_string()+" y t1_tipo : "+t1_tipo.get_string());
-        System.out.println("En T, se sintetitiza el tipo t_tipo : "+t_tipo.get_string());
+        //System.out.println("En T, f_tipo : "+f_tipo.get_string()+" y t1_tipo : "+t1_tipo.get_string());
+        //System.out.println("En T, se sintetitiza el tipo t_tipo : "+t_tipo.get_string());
     }
     
     private void F (TablaSimbolos ts, Strings f_tipo){
@@ -1673,8 +1569,8 @@ public class Semantico {
             f_tipo.set_string(g_tipo.get_string());
         }
         
-        System.out.println("En F, el tipo g_tipo : "+g_tipo.get_string());
-        System.out.println("En F, se sintetitiza el tipo f_tipo : "+f_tipo.get_string());
+        //System.out.println("En F, el tipo g_tipo : "+g_tipo.get_string());
+        //System.out.println("En F, se sintetitiza el tipo f_tipo : "+f_tipo.get_string());
     }
     
     private void G (TablaSimbolos ts, Strings g_tipo){
@@ -1694,8 +1590,8 @@ public class Semantico {
                 System.exit(1);
             }
         
-        System.out.println("En G, el tipo h_tipo : "+h_tipo.get_string()+" y g1_tipo : "+g1_tipo.get_string());
-        System.out.println("En G, se sintetiza el tipo g_tipo : "+g_tipo.get_string()+" G1 es "+g1_tipo.get_string());
+        //System.out.println("En G, el tipo h_tipo : "+h_tipo.get_string()+" y g1_tipo : "+g1_tipo.get_string());
+        //System.out.println("En G, se sintetiza el tipo g_tipo : "+g_tipo.get_string()+" G1 es "+g1_tipo.get_string());
     }
     
     private void H (TablaSimbolos ts, Strings h_tipo){
@@ -1715,8 +1611,8 @@ public class Semantico {
                 System.exit(1);
             }
         
-        System.out.println("En H, el tipo i_tipo : "+i_tipo.get_string()+" y h1_tipo : "+h1_tipo.get_string());
-        System.out.println("En H, se sintetitiza el tipo h_tipo : "+h_tipo.get_string());
+        //System.out.println("En H, el tipo i_tipo : "+i_tipo.get_string()+" y h1_tipo : "+h1_tipo.get_string());
+        //System.out.println("En H, se sintetitiza el tipo h_tipo : "+h_tipo.get_string());
     }
     
     private void I (TablaSimbolos ts, Strings i_tipo){
@@ -1736,8 +1632,8 @@ public class Semantico {
                 System.exit(1);
             }
         
-        System.out.println("En I, el tipo j_tipo : "+j_tipo.get_string()+" y i1_tipo : "+i1_tipo.get_string());
-        System.out.println("En I, se sintetitiza el tipo i_tipo : "+i_tipo.get_string());
+        //System.out.println("En I, el tipo j_tipo : "+j_tipo.get_string()+" y i1_tipo : "+i1_tipo.get_string());
+        //System.out.println("En I, se sintetitiza el tipo i_tipo : "+i_tipo.get_string());
     }
     
     private void J (TablaSimbolos ts, Strings j_tipo){
@@ -1765,8 +1661,8 @@ public class Semantico {
             j_tipo.set_string(k_tipo.get_string());
         }
         
-        System.out.println("En J, el tipo k_tipo : "+k_tipo.get_string());
-        System.out.println("En J, se sintetitiza el tipo j_tipo : "+j_tipo.get_string());
+        //System.out.println("En J, el tipo k_tipo : "+k_tipo.get_string());
+        //System.out.println("En J, se sintetitiza el tipo j_tipo : "+j_tipo.get_string());
     }
     
     private void I1 (TablaSimbolos ts, Strings j_tipo, Strings i1_tipo){
@@ -1792,8 +1688,8 @@ public class Semantico {
                       i1_tipo.set_string("void");
         }
         
-        System.out.println("En I1, el tipo j_tipo : "+j_tipo.get_string());
-        System.out.println("En I1, se sintetitiza el tipo i1_tipo : "+i1_tipo.get_string());
+        //System.out.println("En I1, el tipo j_tipo : "+j_tipo.get_string());
+        //System.out.println("En I1, se sintetitiza el tipo i1_tipo : "+i1_tipo.get_string());
     }
     
     private void H1 (TablaSimbolos ts, Strings i_tipo, Strings h1_tipo){
@@ -1819,8 +1715,8 @@ public class Semantico {
                       h1_tipo.set_string("void");
         }
         
-        System.out.println("En H1, el tipo i_tipo : "+i_tipo.get_string());
-        System.out.println("En H1, se sintetitiza el tipo h1_tipo : "+h1_tipo.get_string());
+        //System.out.println("En H1, el tipo i_tipo : "+i_tipo.get_string());
+        //System.out.println("En H1, se sintetitiza el tipo h1_tipo : "+h1_tipo.get_string());
     }
     
     private void G1 (TablaSimbolos ts, Strings h_tipo, Strings g1_tipo){
@@ -1850,8 +1746,8 @@ public class Semantico {
                       g1_tipo.set_string("void");
         }
         
-        System.out.println("En G1, el tipo h_tipo : "+h_tipo.get_string());
-        System.out.println("En G1, se sintetitiza el tipo g1_tipo : "+g1_tipo.get_string());
+        //System.out.println("En G1, el tipo h_tipo : "+h_tipo.get_string());
+        //System.out.println("En G1, se sintetitiza el tipo g1_tipo : "+g1_tipo.get_string());
     }
     
     private void T1 (TablaSimbolos ts, Strings f_tipo, Strings t1_tipo){
@@ -1873,8 +1769,8 @@ public class Semantico {
         }else//; //Presencia de cadena nula.
             t1_tipo.set_string("void");
         
-        System.out.println("En T1, el tipo f_tipo : "+f_tipo.get_string());
-        System.out.println("En T1, se sintetitiza el tipo t1_tipo : "+t1_tipo.get_string());
+        //System.out.println("En T1, el tipo f_tipo : "+f_tipo.get_string());
+        //System.out.println("En T1, se sintetitiza el tipo t1_tipo : "+t1_tipo.get_string());
     }
     
     private void E1 (TablaSimbolos ts, Strings e1_tipo){
@@ -1900,8 +1796,8 @@ public class Semantico {
             e1_tipo.set_string("void");
         }
         
-        System.out.println("En E1, el tipo t_tipo : "+t_tipo.get_string());
-        System.out.println("En E1, se sintetitiza el tipo e1_tipo : "+e1_tipo.get_string());
+        //System.out.println("En E1, el tipo t_tipo : "+t_tipo.get_string());
+        //System.out.println("En E1, se sintetitiza el tipo e1_tipo : "+e1_tipo.get_string());
     }
     
     private void K (TablaSimbolos ts, Strings k_tipo){
@@ -2097,10 +1993,7 @@ public class Semantico {
                                                   }
                                     }
 
-                //                    if(token.get_lexema().equalsIgnoreCase("(")){
-                //                        
-                //                    }else
-                //                        ; //Solamente tenemos un identificador.
+                
                                 }
                 }//Fin del switch.
             }
