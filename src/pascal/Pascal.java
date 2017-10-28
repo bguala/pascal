@@ -58,6 +58,8 @@ public class Pascal {
                                Semantico semantico=new Semantico (lexico.get_tokens_sintacticos(),lexico.get_palabras_reservadas(), archivo);
                                semantico.analisis_semantico();
                                    
+                               semantico.guardar_ts();
+                               
                                System.out.println("\n *** Analisis semantico exitoso *** ");
                                
                                break;

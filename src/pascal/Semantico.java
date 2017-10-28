@@ -1530,9 +1530,10 @@ public class Semantico {
     
     private void T (TablaSimbolos ts, Strings t_tipo){
         Strings f_tipo=new Strings("");
+        Strings f_tipo_bis=new Strings("");
         Strings t1_tipo=new Strings("");
         
-        F(ts, f_tipo);T1(ts, f_tipo, t1_tipo);
+        F(ts, f_tipo);T1(ts, f_tipo_bis, t1_tipo);
         
         //--- Esquema de traduccion ---
         if(t1_tipo.get_string().equalsIgnoreCase("void"))
@@ -1575,10 +1576,15 @@ public class Semantico {
     
     private void G (TablaSimbolos ts, Strings g_tipo){
         Strings h_tipo=new Strings("");
+        Strings h_tipo_bis=new Strings("");//Guarda el tipo que sintetiza la funcion H que se llama dentro de G1.
         Strings g1_tipo=new Strings("");
+        //El problema esta en no replicar h_tipo, por la rama H queda en boolean pero como es el mismo objeto el
+        //que pasa por la rama G1 se vuelve a modificar con integer.
         
-        H(ts, h_tipo);G1(ts, h_tipo, g1_tipo);
-        
+        H(ts, h_tipo);System.out.println("En G pasa esto, h_tipo despues de H es : "+h_tipo.get_string());
+        G1(ts, h_tipo_bis, g1_tipo);System.out.println("mientras que despues de G1 el valor de h_tipo_bis es : "+h_tipo_bis.get_string());
+        System.out.println("Y el valor de G1 es : "+g1_tipo.get_string());
+        //System.exit(1);
         //--- Esquema de traduccion ---
         if(g1_tipo.get_string().equalsIgnoreCase("void"))
             g_tipo.set_string(h_tipo.get_string());
@@ -1590,15 +1596,16 @@ public class Semantico {
                 System.exit(1);
             }
         
-        //System.out.println("En G, el tipo h_tipo : "+h_tipo.get_string()+" y g1_tipo : "+g1_tipo.get_string());
-        //System.out.println("En G, se sintetiza el tipo g_tipo : "+g_tipo.get_string()+" G1 es "+g1_tipo.get_string());
+        System.out.println("En G, el tipo h_tipo : "+h_tipo.get_string()+" y g1_tipo : "+g1_tipo.get_string());
+        System.out.println("En G, se sintetiza el tipo g_tipo : "+g_tipo.get_string()+" G1 es "+g1_tipo.get_string());
     }
     
     private void H (TablaSimbolos ts, Strings h_tipo){
         Strings i_tipo=new Strings("");
+        Strings i_tipo_bis=new Strings("");
         Strings h1_tipo=new Strings("");
         
-        I(ts, i_tipo);H1(ts, i_tipo, h1_tipo);
+        I(ts, i_tipo);H1(ts, i_tipo_bis, h1_tipo);
         
         //--- Esquema de traduccion ---
         if(h1_tipo.get_string().equalsIgnoreCase("void"))
@@ -1611,15 +1618,16 @@ public class Semantico {
                 System.exit(1);
             }
         
-        //System.out.println("En H, el tipo i_tipo : "+i_tipo.get_string()+" y h1_tipo : "+h1_tipo.get_string());
-        //System.out.println("En H, se sintetitiza el tipo h_tipo : "+h_tipo.get_string());
+        System.out.println("En H, el tipo i_tipo : "+i_tipo.get_string()+" y h1_tipo : "+h1_tipo.get_string());
+        System.out.println("En H, se sintetitiza el tipo h_tipo : "+h_tipo.get_string());
     }
     
     private void I (TablaSimbolos ts, Strings i_tipo){
         Strings j_tipo=new Strings("");
+        Strings j_tipo_bis=new Strings("");
         Strings i1_tipo=new Strings("");
         
-        J(ts, j_tipo);I1(ts, j_tipo, i1_tipo);
+        J(ts, j_tipo);I1(ts, j_tipo_bis, i1_tipo);
         
         //--- Esquema de traduccion ---
         if(i1_tipo.get_string().equalsIgnoreCase("void"))
@@ -1632,8 +1640,8 @@ public class Semantico {
                 System.exit(1);
             }
         
-        //System.out.println("En I, el tipo j_tipo : "+j_tipo.get_string()+" y i1_tipo : "+i1_tipo.get_string());
-        //System.out.println("En I, se sintetitiza el tipo i_tipo : "+i_tipo.get_string());
+        System.out.println("En I, el tipo j_tipo : "+j_tipo.get_string()+" y i1_tipo : "+i1_tipo.get_string());
+        System.out.println("En I, se sintetitiza el tipo i_tipo : "+i_tipo.get_string());
     }
     
     private void J (TablaSimbolos ts, Strings j_tipo){
@@ -1661,8 +1669,8 @@ public class Semantico {
             j_tipo.set_string(k_tipo.get_string());
         }
         
-        //System.out.println("En J, el tipo k_tipo : "+k_tipo.get_string());
-        //System.out.println("En J, se sintetitiza el tipo j_tipo : "+j_tipo.get_string());
+        System.out.println("En J, el tipo k_tipo : "+k_tipo.get_string());
+        System.out.println("En J, se sintetitiza el tipo j_tipo : "+j_tipo.get_string());
     }
     
     private void I1 (TablaSimbolos ts, Strings j_tipo, Strings i1_tipo){
@@ -1746,8 +1754,8 @@ public class Semantico {
                       g1_tipo.set_string("void");
         }
         
-        //System.out.println("En G1, el tipo h_tipo : "+h_tipo.get_string());
-        //System.out.println("En G1, se sintetitiza el tipo g1_tipo : "+g1_tipo.get_string());
+        System.out.println("En G1, el tipo h_tipo : "+h_tipo.get_string());
+        System.out.println("En G1, se sintetitiza el tipo g1_tipo : "+g1_tipo.get_string());
     }
     
     private void T1 (TablaSimbolos ts, Strings f_tipo, Strings t1_tipo){
@@ -1977,6 +1985,7 @@ public class Semantico {
                                                   if(simbolo instanceof Variable){
                                                       TipoDato tipo=(TipoDato)((Variable)simbolo).get_tipo_dato();
                                                       k_tipo.set_string(tipo.get_nombre_tipo());
+                                                      //System.out.println("\nEste es el tipo que sintetizamos : "+k_tipo.get_string()+" Token : "+id.get_lexema());
                                                   }else{
                                                       if(simbolo instanceof Constante){
                                                           k_tipo.set_string(((Constante)simbolo).get_tipo());
@@ -2017,7 +2026,7 @@ public class Semantico {
                 valor=ts.obtener_parametro_formal(token);
                 if(valor != null)
                     fin=true;
-                else//Si no encontramos el identificador en la lista de parametros formales continuemos buscando en la cadena estatica.
+                else//Si no encontramos el identificador en la lista de parametros formales continuamos buscando en la cadena estatica.
                     ts=ts.get_ts_superior();
             }
         }
