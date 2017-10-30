@@ -63,6 +63,8 @@ public class Pascal {
                                System.out.println("\n *** Analisis semantico exitoso *** ");
                                
                                break;
+                               
+                    case 'g' : break;
 
                     default : System.out.println("\nOpcion incorrecta!. Ejecute java -jar pascal.jar -b para acceder al manual de usuario.\n");
                 }

@@ -1101,19 +1101,35 @@ public class Semantico {
                                                         System.out.println("\nError Semantico : *** No es posible modificar el contenido de una CONSTANTE en tiempo de ejecucion *** Linea "+token.get_linea_programa());
                                                         System.exit(1);
                                                     }else{
-                                                        if(simbolo instanceof Registro)
-                                                            var="REGISTRO";
-                                                        if(simbolo instanceof Funcion)
-                                                            var="FUNCION";
-                                                        if(simbolo instanceof Procedimiento)
-                                                            var="PROCEDIMIENTO";
-                                                        if(simbolo instanceof Enumeracion)
-                                                            var="ENUMERACION";
-                                                        if(simbolo instanceof Subrango)
-                                                            var="SUBRANGO";
+                                                        if(simbolo instanceof Funcion){
+                                                            if(ts.get_propietario().equalsIgnoreCase(tk.get_lexema())){
+                                                                tipo=((TipoDato)argumentos.get(0).get_tipo_dato()).get_nombre_tipo();
+                                                                String tipo_retorno=((TipoDato)(((Funcion)simbolo).get_tipo_retorno())).get_nombre_tipo();
+                                                                
+                                                                if(tipo_retorno.equalsIgnoreCase(tipo))
+                                                                    sentencia_tipo.set_string(tipo_retorno);
+                                                                else{
+                                                                    System.out.println("\nError Semantico : *** Tipos incompatibles, esta intentando asignar una expresion de tipo "+tipo+", en la variable \""+tk.get_lexema()+"\" que se corresponde con el nombre de una FUNCION que posee como retorno un elemento de tipo "+tipo_retorno+" *** Linea "+tk.get_linea_programa());
+                                                                    System.exit(1);
+                                                                }
+                                                            }else{
+                                                                System.out.println("\nError Semantico : *** No es posible asignar un valor en la variable \""+tk.get_lexema()+"\" porque la misma se corresponde con una FUNCION y no estamos en el ambiente adecuado *** Linea "+tk.get_linea_programa());
+                                                                System.exit(1);
+                                                            }
+                                                                                                                        
+                                                        }else{
+                                                            if(simbolo instanceof Registro)
+                                                                var="REGISTRO";
+                                                            if(simbolo instanceof Procedimiento)
+                                                                var="PROCEDIMIENTO";
+                                                            if(simbolo instanceof Enumeracion)
+                                                                var="ENUMERACION";
+                                                            if(simbolo instanceof Subrango)
+                                                                var="SUBRANGO";
 
-                                                        System.out.println("\nError Semantico : *** No es posible realizar asignaciones en identificadores de tipo "+var+" *** Linea "+tk.get_linea_programa());
-                                                        System.exit(1);
+                                                            System.out.println("\nError Semantico : *** No es posible realizar asignaciones en identificadores de tipo "+var+" *** Linea "+tk.get_linea_programa());
+                                                            System.exit(1);
+                                                        }
                                                     }
                                             }
                                         }else{
@@ -1236,32 +1252,44 @@ public class Semantico {
     }
     
     private void seleccion_multiple (TablaSimbolos ts){
-        String seleccion_multiple="";
-        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        Strings seleccion_multiple=new Strings("");
+        Strings expresion_tipo=new Strings("");
+        Token token;
+//        Token token=this.tokens_sintacticos.get(this.preanalisis);
+//        
+//        if(digito(token))
+//            this.preanalisis++;
+//        else//podriamos usar expresion(ts, expresion_tipo)
+//            if(identificador(token)){
+//                
+//                //--- Esquema de traduccion ---
+//                Variable variable=(Variable)this.obtener_valor(ts, token);
+//                if(variable != null){
+//                    TipoDato tipo_dato=(TipoDato)variable.get_tipo_dato();
+//                    if(tipo_dato.get_nombre_tipo().equalsIgnoreCase("integer"))
+//                        seleccion_multiple="void";
+//                    else{
+//                        System.out.println("\nError Semantico : *** Tipos incompatibles, la estructura \"case\" requiere una expresion de tipo integer. Se encontro una expresion de tipo "+tipo_dato.get_nombre_tipo()+" *** Linea "+token.get_linea_programa());
+//                        System.exit(1);
+//                    }
+//                }else{
+//                    System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
+//                    System.exit(1);
+//                }
+//                
+//                this.preanalisis++;
+//            }
+        expresion(ts, expresion_tipo);
         
-        if(digito(token))
-            this.preanalisis++;
-        else//podriamos usar expresion(ts, expresion_tipo)
-            if(identificador(token)){
-                
-                //--- Esquema de traduccion ---
-                Variable variable=(Variable)this.obtener_valor(ts, token);
-                if(variable != null){
-                    TipoDato tipo_dato=(TipoDato)variable.get_tipo_dato();
-                    if(tipo_dato.get_nombre_tipo().equalsIgnoreCase("integer"))
-                        seleccion_multiple="void";
-                    else{
-                        System.out.println("\nError Semantico : *** Tipos incompatibles, la estructura \"case\" requiere una expresion de tipo integer. Se encontro una expresion de tipo "+tipo_dato.get_nombre_tipo()+" *** Linea "+token.get_linea_programa());
-                        System.exit(1);
-                    }
-                }else{
-                    System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
-                    System.exit(1);
-                }
-                
-                this.preanalisis++;
-            }
-            
+        //--- ESquema de traduccion ---
+        if(expresion_tipo.get_string().equalsIgnoreCase("integer"))
+            seleccion_multiple.set_string("void");
+        else{
+            token=this.tokens_sintacticos.get(this.preanalisis);
+            System.out.println("\nError Semantico : *** Tipos incompatibles, la estructura \"case\" requiere una expresion de tipo integer. Se encontro una expresion de tipo "+expresion_tipo.get_string()+" *** Linea "+token.get_linea_programa());
+            System.exit(1);
+        }
+        
         match("of");
         
         opciones(ts);
@@ -1364,7 +1392,7 @@ public class Semantico {
     }
     
     private void read (TablaSimbolos ts){
-        String procedimiento_es="";
+        Strings procedimiento_es=new Strings("");
         String tipo="";
         
         match("(");
@@ -1379,7 +1407,7 @@ public class Semantico {
             if(simbolo instanceof Variable){
                 TipoDato tipo_dato=(TipoDato)((Variable)simbolo).get_tipo_dato();
                 if(tipo_dato.get_nombre_tipo().equalsIgnoreCase("integer"))
-                    procedimiento_es="";
+                    procedimiento_es.set_string("");
                 else{
                     System.out.println("\nError Semantico : *** Tipos incompatibles, el precedimiento de entrada-salida \"read\" requiere como argumento una variable de tipo integer. Se encontro una variable de tipo "+tipo_dato.get_nombre_tipo()+" *** Linea "+token.get_linea_programa());
                     System.exit(1);
@@ -1389,20 +1417,35 @@ public class Semantico {
                     System.out.println("\nError Semantico : *** No es posible modificar el contenido de una CONSTANTE en tiempo de ejecucion *** Linea "+token.get_linea_programa());
                     System.exit(1);
                 }else{
-                    if(simbolo instanceof Registro)
-                        tipo="REGISTRO";
-                    if(simbolo instanceof Funcion)
-                        tipo="FUNCION";
-                    if(simbolo instanceof Procedimiento)
-                        tipo="PROCEDIMIENTO";
-                    if(simbolo instanceof Subrango)
-                        tipo="SUBRANGO";
-                    if(simbolo instanceof Enumeracion)
-                        tipo="ENUEMRACION";
-                    if(simbolo instanceof TipoDato)
-                        tipo="TIPO DEFINIDO POR EL USUARIO";
-                    
-                    System.out.println("\nError Semantico : *** El procedimiento de entrada-salida \"read\" requiere unicamente variables de tipo integer. Se encontro un elemento de tipo "+tipo+" *** Linea "+token.get_linea_programa());
+                    if(simbolo instanceof Funcion){
+                        if(ts.get_propietario().equalsIgnoreCase(token.get_lexema())){
+                            String tipo_retorno=((TipoDato)(((Funcion)simbolo).get_tipo_retorno())).get_nombre_tipo();
+
+                            if(tipo_retorno.equalsIgnoreCase("integer"))
+                                procedimiento_es.set_string(tipo_retorno);
+                            else{
+                                System.out.println("\nError Semantico : *** Tipos incompatibles, esta intentando asignar una expresion de tipo "+"integer"+", en la variable \""+token.get_lexema()+"\" que se corresponde con el nombre de una FUNCION que posee como retorno un elemento de tipo "+tipo_retorno+" *** Linea "+token.get_linea_programa());
+                                System.exit(1);
+                            }
+                        }else{
+                            System.out.println("\nError Semantico : *** No es posible asignar un valor en la variable \""+token.get_lexema()+"\" porque la misma se corresponde con una FUNCION y no estamos en el ambiente adecuado *** Linea "+token.get_linea_programa());
+                            System.exit(1);
+                        }
+                    }else{             
+                        if(simbolo instanceof Registro)
+                            tipo="REGISTRO";
+                        if(simbolo instanceof Procedimiento)
+                            tipo="PROCEDIMIENTO";
+                        if(simbolo instanceof Subrango)
+                            tipo="SUBRANGO";
+                        if(simbolo instanceof Enumeracion)
+                            tipo="ENUEMRACION";
+                        if(simbolo instanceof TipoDato)
+                            tipo="TIPO DEFINIDO POR EL USUARIO";
+
+                        System.out.println("\nError Semantico : *** El procedimiento de entrada-salida \"read\" requiere unicamente variables de tipo integer. Se encontro un elemento de tipo "+tipo+" *** Linea "+token.get_linea_programa());
+                        System.exit(1);
+                    }
                 }
             }
         }else{
