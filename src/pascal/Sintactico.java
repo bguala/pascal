@@ -42,7 +42,7 @@ public class Sintactico {
         this.palabras_reservadas.add("or");
         this.palabras_reservadas.add("not");
         
-        this.tabla_simbolos=new TablaSimbolos(0,"");
+        this.tabla_simbolos=new TablaSimbolos(0,"",0);
     }
     
     //-----------------------------------------------------------------------------------
@@ -129,11 +129,13 @@ public class Sintactico {
     //-----------------------------------------------------------------------------------
     
     private void mi_pascal (){
+        int nivel_lexico=1;
+        
         encabezado();
         //TS local al programa principal.
         definicion(this.tabla_simbolos);
         
-        declaracion_subprogramas(this.tabla_simbolos);
+        declaracion_subprogramas(this.tabla_simbolos, nivel_lexico);
         
         bloque(this.tabla_simbolos);
         
@@ -821,27 +823,27 @@ public class Sintactico {
     //--- Declaracion de Subprogramas ---------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    private void declaracion_subprogramas (TablaSimbolos ts_superior){
+    private void declaracion_subprogramas (TablaSimbolos ts_superior, int nivel_lexico){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         
         switch(token.get_lexema()){
             case "function"   : this.preanalisis++;
-                                funcion(ts_superior,null);
-                                declaracion_subprogramas(ts_superior);
+                                funcion(ts_superior,null,nivel_lexico);
+                                declaracion_subprogramas(ts_superior,nivel_lexico);
                                 break;
             case "procedure"  : this.preanalisis++;
-                                procedimiento(ts_superior,null);
-                                declaracion_subprogramas(ts_superior);
+                                procedimiento(ts_superior,null,nivel_lexico);
+                                declaracion_subprogramas(ts_superior,nivel_lexico);
                                 break;
             default : ; //Presencia de cadena nula. Significa que no hay definicion de subprogramas.
         }
     }
     
-    private void funcion (TablaSimbolos ts_superior, TablaSimbolos ts_local){
+    private void funcion (TablaSimbolos ts_superior, TablaSimbolos ts_local, int nivel_lexico){
         Token token;
         String id="";
         //Para guardar el entorno local del subprograma.
-        ts_local=new TablaSimbolos(this.id_entorno,"");
+        ts_local=new TablaSimbolos(this.id_entorno,"",nivel_lexico);
         this.id_entorno++;
         
         token=this.tokens_sintacticos.get(this.preanalisis);
@@ -881,7 +883,7 @@ public class Sintactico {
         ts_superior.set_ts_inferior(ts_local);
         
         //Para subprogramas anidados.
-        declaracion_subprogramas(ts_local);
+        declaracion_subprogramas(ts_local,nivel_lexico++);
         
         bloque(ts_local);
         
@@ -916,11 +918,11 @@ public class Sintactico {
             ; //Presencia de cadena nula. Representa caso base.
     }
     
-    private void procedimiento (TablaSimbolos ts_superior, TablaSimbolos ts_local){
+    private void procedimiento (TablaSimbolos ts_superior, TablaSimbolos ts_local, int nivel_lexico){
         Token token;
         String id="";
         
-        ts_local=new TablaSimbolos(this.id_entorno,"");
+        ts_local=new TablaSimbolos(this.id_entorno,"",nivel_lexico);
         this.id_entorno++;
         token=this.tokens_sintacticos.get(this.preanalisis);
         
@@ -945,7 +947,7 @@ public class Sintactico {
 
             match(";");
 
-            ts_local.insertar(id, new Procedimiento(id,1,parametro_formal));
+            ts_local.insertar(id, new Procedimiento(id,1,parametro_formal,""));
         }
         
         definicion(ts_local);
@@ -955,7 +957,7 @@ public class Sintactico {
         ts_superior.set_ts_inferior(ts_local);
         
         //Consideramos subprogramas anidados.
-        declaracion_subprogramas(ts_local);
+        declaracion_subprogramas(ts_local,nivel_lexico++);
         
         bloque(ts_local);
         

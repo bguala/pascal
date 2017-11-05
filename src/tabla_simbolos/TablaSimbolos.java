@@ -22,6 +22,7 @@ public class TablaSimbolos {
     //Contiene el nombre del subprograma duenio de la TS LOCAL, es util para verificar si una variable que se
     //usa en una asignacion o una expresion pertenece a los parametros formales de un subprograma.
     private String propietario;
+    private int nivel_lexico;
     
     //Para implementar cadena estatica.
     private TablaSimbolos superior;
@@ -32,10 +33,11 @@ public class TablaSimbolos {
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public TablaSimbolos (int id, String propietario){
+    public TablaSimbolos (int id, String propietario, int nivel_lexico){
         this.tabla_simbolos=new HashMap<String, Simbolo>(75, (float)0.8);
         this.id_entorno=id;
         this.propietario=propietario;
+        this.nivel_lexico=nivel_lexico;
         this.superior=null;
         this.inferiores=new ArrayList();
     }
@@ -68,6 +70,10 @@ public class TablaSimbolos {
     
     public String get_propietario (){
         return this.propietario;
+    }
+    
+    public int get_nivel_lexico (){
+        return this.nivel_lexico;
     }
     
     //-----------------------------------------------------------------------------------

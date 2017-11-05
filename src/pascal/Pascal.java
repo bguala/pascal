@@ -64,7 +64,20 @@ public class Pascal {
                                
                                break;
                                
-                    case 'g' : break;
+                    case 'g' : lexico=new Lexico(archivo);
+                               lexico.analisis_lexico();
+                               lexico.guardar_tokens();
+                               
+                               GeneradorCodigo generador=new GeneradorCodigo(lexico.get_tokens_sintacticos(),lexico.get_palabras_reservadas(),archivo);
+                               generador.generacion_codigo();
+                               
+                               generador.guardar_ts();
+                               
+                               generador.crear_archivo_mepa();
+                               
+                               System.out.println("\n *** Generacion de codigo intermedio exitosa *** ");
+                               
+                               break;
 
                     default : System.out.println("\nOpcion incorrecta!. Ejecute java -jar pascal.jar -b para acceder al manual de usuario.\n");
                 }

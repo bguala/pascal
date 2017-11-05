@@ -15,6 +15,7 @@ public class Parametro {
     
     private ArrayList<String> parametro_formal;//Contiene listas de identifiadores id1, id2, id3 etc.
     private Simbolo tipo_dato;
+    private int posicion_inicial;//Posicion del primer parametro formal del ArrayList parametro_formal. Se utiliza para calcular el valor de i.
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
@@ -23,12 +24,20 @@ public class Parametro {
     public Parametro (ArrayList<String> parametro_formal, Simbolo tipo_dato){
         this.parametro_formal=parametro_formal;
         this.tipo_dato=tipo_dato;
+        this.posicion_inicial=1;
+    }
+    
+    public Parametro (ArrayList<String> parametro_formal, Simbolo tipo_dato, int i){
+        this.parametro_formal=parametro_formal;
+        this.tipo_dato=tipo_dato;
+        this.posicion_inicial=i;
     }
     
     public Parametro (String lexema, Simbolo tipo_dato){
         this.parametro_formal=new ArrayList();
         this.parametro_formal.add(lexema);
         this.tipo_dato=tipo_dato;
+        this.posicion_inicial=1;
     }
     
     //-----------------------------------------------------------------------------------
@@ -62,6 +71,13 @@ public class Parametro {
         
         return s;
         
+    }
+    
+    /*
+    * Esta funcion se utiliza para calcular el desplazamiento negativo de un parametro formal.
+    */
+    public String get_parametro (){
+        return this.parametro_formal.get(0);
     }
     
     //-----------------------------------------------------------------------------------

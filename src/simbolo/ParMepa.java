@@ -9,48 +9,42 @@ package simbolo;
  *
  * @author Bruno
  */
-public abstract class Simbolo {
+public class ParMepa {
     
-    protected String lexema;
-    //Este atribito se utiliza para direccionar una variable en el lengueje MEPA.
-    protected int espacio_asignado;
+    private String etiqueta;
+    private String inst;
     
     //-----------------------------------------------------------------------------------
-    //--- Constructores -----------------------------------------------------------------
+    //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Simbolo (){
-        this.lexema="";
-        this.espacio_asignado=1;
-    }
-    
-    public Simbolo (String lexema, int espacio_asignado){
-        this.lexema=lexema;
-        this.espacio_asignado=espacio_asignado;
+    public ParMepa (String etiqueta, String inst){
+        this.etiqueta=etiqueta;
+        this.inst=inst;
     }
     
     //-----------------------------------------------------------------------------------
-    //--- Observadores ------------------------------------------------------------------
+    //--- Observadores-------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public String get_lexema (){
-        return this.lexema;
+    public String get_etiqueta (){
+        return this.etiqueta;
     }
     
-    public int get_espacio_asignado (){
-        return this.espacio_asignado;
+    public String get_inst (){
+        return this.inst;
     }
     
     //-----------------------------------------------------------------------------------
-    //--- Modificadores -----------------------------------------------------------------
+    //--- Modificadores------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public void set_lexema (String lex){
-        this.lexema=lex;
+    public void set_etiqueta (String etiqueta){
+        this.etiqueta=etiqueta;
     }
     
-    public void set_espacio_asignado (int espacio){
-        this.espacio_asignado=espacio;
+    public void set_inst (String inst){
+        this.inst=inst;
     }
     
     //-----------------------------------------------------------------------------------
@@ -58,7 +52,7 @@ public abstract class Simbolo {
     //-----------------------------------------------------------------------------------
     
     public String a_cadena (){
-        return this.lexema+" , "+this.espacio_asignado;
+        return this.etiqueta+this.inst;
     }
     
 }

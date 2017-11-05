@@ -17,7 +17,7 @@ import simbolo.*;
  *
  * @author Bruno
  */
-public class Semantico {
+public class GeneradorCodigo {
     
     private int preanalisis;
     private int id_entorno;
@@ -26,18 +26,34 @@ public class Semantico {
     private TablaSimbolos tabla_simbolos; //Contiene a la TS relacionada al programa principal.
     private String archivo;
     private Token inicio_exp;
+    private int contador;
+    private String codigo_mepa;
+    private ArrayList<ParMepa> mepa;
+    private int cant_variables;
+    private int direccionamiento;
+    private int i;//Posicion de los parametros formales.
+    private boolean es_parametro_formal;//Ayuda a determinar si una varibale es un parametro formal.
+    private int nivel_lexico;//Guardamos el nivel lexico de un identificador. Es util cuando nos desplazamos por la cadena estatica.
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public Semantico (ArrayList<Token> tokens_sintacticos, ArrayList<String> palabras, String archivo){
+    public GeneradorCodigo (ArrayList<Token> tokens_sintacticos, ArrayList<String> palabras, String archivo){
         this.preanalisis=0;
         this.id_entorno=1;
         this.tokens_sintacticos=tokens_sintacticos;
         this.palabras_reservadas=palabras;
         this.archivo=archivo;
         this.inicio_exp=null;
+        this.contador=0;
+        this.codigo_mepa="";
+        this.mepa=new ArrayList();
+        this.cant_variables=0;
+        this.direccionamiento=0;
+        this.i=0;
+        this.es_parametro_formal=false;
+        this.nivel_lexico=0;
         
         //Agregamos nuevas palabras reservadas.
         this.palabras_reservadas.add("and");
@@ -83,7 +99,7 @@ public class Semantico {
     //--- Propios -----------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    public void analisis_semantico (){
+    public void generacion_codigo (){
         mi_pascal();
     }
     
@@ -126,16 +142,69 @@ public class Semantico {
         }
     }
     
+    public void crear_archivo_mepa (){
+        try{
+            String nombre_archivo=this.archivo.substring(0, this.archivo.length()-4);
+            PrintWriter salida=new PrintWriter(new FileOutputStream(nombre_archivo+".mep"));
+            salida.println(this.formatear_codigo_intermedio());
+            salida.close();
+            
+        }catch(FileNotFoundException ex){
+            
+            System.out.println(ex.getMessage());
+            System.exit(1);
+            
+        }
+    }
+    
+    private String formatear_codigo_intermedio (){
+        String codigo_mepa="";
+        String etiqueta="";
+        String espacio="";
+        String inst="";
+        int i;
+        int n=this.mepa.size();
+        
+        for(i=0;i<n;i++){
+            etiqueta=this.mepa.get(i).get_etiqueta();
+            if(etiqueta.length() == 0){
+                espacio=this.espacio(10);
+                codigo_mepa += "\n"+espacio+this.mepa.get(i).get_inst();
+            }else{
+                espacio=this.espacio(10 - etiqueta.length());
+                codigo_mepa += "\n"+etiqueta+espacio+this.mepa.get(i).get_inst();
+            }
+        }
+        
+        return codigo_mepa;
+    }
+    
+    private String espacio (int cantidad){
+        String str="";
+        int i=1;
+        
+        while(i <= cantidad){
+            str += " ";
+            i++;
+        }
+        
+        return str;
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- MiPascal ----------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
     private void mi_pascal (){
+        this.codigo_mepa += "\nINPP\n";
+        this.mepa.add(new ParMepa("","INPP\n"));
         int nivel_lexico=1;
         
         encabezado();
         //TS local al programa principal.
         definicion(this.tabla_simbolos);
+        
+        //this.codigo_mepa += "\nRMEM "+this.cant_variables+"\n";
         
         declaracion_subprogramas(this.tabla_simbolos,nivel_lexico);
         
@@ -148,6 +217,9 @@ public class Semantico {
             System.exit(1);
         }
         match(".");
+        
+        this.codigo_mepa += "\nPARA\n";
+        this.mepa.add(new ParMepa("","PARA"));
     }
     
     //-----------------------------------------------------------------------------------
@@ -241,6 +313,10 @@ public class Semantico {
                                            }
                                            break;
                          }
+                         
+                         //--- Codigo MEPA ---
+                         this.mepa.add(new ParMepa("","RMEM "+this.cant_variables+"\n"));
+                         
                          break;
             default : //Segmento de definicion vacio.
             
@@ -269,6 +345,8 @@ public class Semantico {
         while(!fin && identificador(this.tokens_sintacticos.get(this.preanalisis))){
             ids.add(this.tokens_sintacticos.get(this.preanalisis).get_lexema());
             this.preanalisis++;
+            //Guardamos la cantidad de variables para reservar memoria.
+            this.cant_variables++;
             
             if(this.tokens_sintacticos.get(this.preanalisis).get_lexema().equalsIgnoreCase(","))
                 this.preanalisis++;
@@ -618,10 +696,16 @@ public class Semantico {
         int i;
         int n=ids.size();
         String lex="";
+        Variable var=null;
         for(i=0; i<n; i++){
             lex=ids.get(i);
             //s.set_lexema(lex);
-            ts.insertar(lex, s);
+            if(s instanceof Variable){//Queremos guardar el direccionamiento en la TS para recuperarlo en las hojas del arbol de derivacion.
+                var=new Variable(this.direccionamiento, ((Variable)s).get_tipo_dato());
+                this.direccionamiento++;
+                ts.insertar(lex, var);//s
+            }else
+                ts.insertar(lex, s);
         }
     }
     
@@ -853,6 +937,11 @@ public class Semantico {
     private void funcion (TablaSimbolos ts_superior, TablaSimbolos ts_local, int nivel_lexico){
         Token token;
         String id="";
+        String etiqueta=this.generar_etiqueta();
+        
+        //--- Codigo MEPA ---
+        this.mepa.add(new ParMepa(etiqueta,"ENPR "+nivel_lexico));
+        
         //Para guardar el entorno local del subprograma.
         ts_local=new TablaSimbolos(this.id_entorno,"",nivel_lexico);
         this.id_entorno++;
@@ -869,6 +958,8 @@ public class Semantico {
         
         match("(");
         
+        //Inicializamos la variable global i, que representa la posicion de cada paramtero formal.
+        this.i=1;
         ArrayList<Parametro> parametro_formal=new ArrayList();
         param(parametro_formal);
         
@@ -923,7 +1014,8 @@ public class Semantico {
                       System.exit(1);
         }
         
-        parametro_formal.add(new Parametro(ids,tipo));
+        parametro_formal.add(new Parametro(ids,tipo,this.i));
+        this.i++;
         
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         
@@ -937,6 +1029,10 @@ public class Semantico {
     private void procedimiento (TablaSimbolos ts_superior, TablaSimbolos ts_local, int nivel_lexico){
         Token token;
         String id="";
+        String etiqueta=this.generar_etiqueta();
+        
+        //--- Codigo MEPA ---
+        this.mepa.add(new ParMepa(etiqueta,"ENPR "+nivel_lexico));
         
         ts_local=new TablaSimbolos(this.id_entorno,"",nivel_lexico);
         this.id_entorno++;
@@ -955,25 +1051,31 @@ public class Semantico {
             this.preanalisis++;
             
             //  Enviamos un ArrayList vacio para evitar null_pointer_excepton.
-            ts_local.insertar(id, new Procedimiento(id,1,new ArrayList(),""));
-            ts_superior.insertar(id, new Procedimiento(id,1,new ArrayList(),""));
+            ts_local.insertar(id, new Procedimiento(id,1,new ArrayList(),etiqueta));
+            ts_superior.insertar(id, new Procedimiento(id,1,new ArrayList(),etiqueta));
             
         }else{
             match("(");
 
+            //Inicializamos la variable global i, que representa la posicion de cada paramtero formal.
+            this.i=1;
             ArrayList<Parametro> parametro_formal=new ArrayList();
-            param(parametro_formal);
+            param(parametro_formal);         
 
             match(")");
 
             match(";");
-
-            ts_local.insertar(id, new Procedimiento(id,1,parametro_formal,""));
-            ts_superior.insertar(id, new Procedimiento(id,1,parametro_formal,""));
+            //Falta insertar la cantidad de parametros formales.
+            ts_local.insertar(id, new Procedimiento(id,1,parametro_formal,etiqueta));
+            ts_superior.insertar(id, new Procedimiento(id,1,parametro_formal,etiqueta));
         }
         
+        //Reseteamos la cantidad de variables y el direccionamiento.
+        this.cant_variables=0;
+        this.direccionamiento=0;
+        //Segmento de definiciones de variables, constantes y tipos.
         definicion(ts_local);
-        
+                
         //Construimos la cadena estatica.
         ts_local.set_ts_superior(ts_superior);
         ts_superior.set_ts_inferior(ts_local);
@@ -1071,15 +1173,16 @@ public class Semantico {
                                         break;
                             case ":=" : //--- Asignacion ---
                                         this.preanalisis++;
-                                        //  Podemos asignar true, false o una expresion que puede ser acceso a arreglo-registro, llamada a subprograma
-                                        //  llamada a funciones predefinidas succ-pred etc.
+                                        //Podemos asignar true, false o una expresion que puede ser acceso a arreglo-registro, llamada a subprogramas
+                                        //llamada a funciones predefinidas succ-pred etc.
                                         argumento(ts, argumentos);
                                         
                                         //--- Esquema de traduccion ---
                                         simbolo=this.obtener_valor(ts, tk);
                                         if(simbolo != null){
-                                            if(simbolo instanceof Variable){
+                                            if(simbolo instanceof Variable){//El lado izq. de una asignacion es una variable que puede ser un parametro formal.
                                                 TipoDato tipo_dato=(TipoDato)((Variable)simbolo).get_tipo_dato();
+                                                Variable var2=((Variable)simbolo);
                                                 tipo=((TipoDato)argumentos.get(0).get_tipo_dato()).get_nombre_tipo();
                                                 
                                                 if(tipo_dato.get_nombre_tipo().equalsIgnoreCase(tipo)){
@@ -1088,6 +1191,20 @@ public class Semantico {
                                                     System.out.println("\nError Semantico : *** Tipos incompatibles, esta intentando asignar una expresion de tipo "+tipo+", en una variable de tipo "+tipo_dato.get_nombre_tipo()+" *** Linea "+tk.get_linea_programa());
                                                     System.exit(1);
                                                 }
+                                                
+                                                //--- Codigo MEPA ---
+                                                if(this.es_parametro_formal){
+                                                    Simbolo subprograma=ts.get(ts.get_propietario());
+                                                    int desplazamiento=-1;
+                                                    if(subprograma instanceof Procedimiento){
+                                                        desplazamiento=((Procedimiento)subprograma).calcular_desplazamiento(tk);
+                                                    }else{
+                                                        
+                                                    }
+                                                    this.mepa.add(new ParMepa("","ALVL "+ts.get_nivel_lexico()+", "+desplazamiento));
+                                                }else//Si la variable no es parametro formal, cambia su direccionamiento.
+                                                    this.mepa.add(new ParMepa("","ALVL "+ts.get_nivel_lexico()+", "+var2.get_espacio_asignado()));
+                                                
                                             }else{
                                                 if(simbolo instanceof TipoDato){
                                                     tipo=((TipoDato)argumentos.get(0).get_tipo_dato()).get_nombre_tipo();
@@ -1138,11 +1255,11 @@ public class Semantico {
                                             System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se encuentra definido *** Linea "+tk.get_linea_programa());
                                             System.exit(1);
                                         }
-                                        
-                                                                                                                        
+                                                                                                                                                                
                                         break;
                             case "("  : //--- Llamada a Subprograma ---
-                                
+                                        
+                                        //--- En este punto debemos tener una llamada a un Procedimiento ---
                                         simbolo=this.obtener_valor(ts, tk);
                                         //  Verificamos si el identificador se encuentra definido em la TS.
                                         if(simbolo == null){
@@ -1150,18 +1267,19 @@ public class Semantico {
                                             System.exit(1);
                                         }
                                         //   Verificamos si el identificador se encuentra definido como Funcion o Procedimiento.     
-                                        if(!((simbolo instanceof Funcion) || (simbolo instanceof Procedimiento))){
-                                           System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" debe estar definido como FUNCION o PROCEDIMIENTO *** Linea "+tk.get_linea_programa());
+                                        if(!((simbolo instanceof Procedimiento))){//(simbolo instanceof Funcion)
+                                           System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" debe estar definido como PROCEDIMIENTO *** Linea "+tk.get_linea_programa());
                                            System.exit(1);
                                         }
-                                         
+                                        
                                         this.preanalisis++;
                                         
-                                        
+                                        //La llamada a args apila los argumentos de la llamada conforme a lo especificado en la
+                                        //funcion expresion.
                                         args(ts, argumentos);
                                         
-                                        //   Verificamos cantidad y tipos de parametros para una Funcion o Procedimiento.
-                                        if(simbolo instanceof Funcion)
+                                        //Verificamos cantidad y tipos de parametros para una Funcion o Procedimiento.
+                                        if(simbolo instanceof Funcion)//Si tenemos una funcion esto no se ejecuta porque previamente se produce un error semantico.
                                             sentencia_tipo.set_string(((Funcion) simbolo).chequeo_de_tipos(tk, argumentos));
                                         else
                                             sentencia_tipo.set_string(((Procedimiento) simbolo).chequeo_de_tipos(tk, argumentos));
@@ -1170,11 +1288,17 @@ public class Semantico {
                                         match(")");
                                         
                                         token=this.tokens_sintacticos.get(this.preanalisis);
-                                        //   Verificamos si un procedimiento no esta incluido en una expresion.
-                                        if(!token.get_lexema().equalsIgnoreCase(";") && (simbolo instanceof Procedimiento)){
-                                            System.out.println("\nError Semantico : *** No se puede utilizar un Procedimiento como operando en una expresion aritmetica, relacional o booleana *** linea "+tk.get_linea_programa());
-                                            System.exit(1);
-                                        }
+                                        //Verificamos si un procedimiento no esta incluido en una expresion.
+                                        //Este error no tiene sentido porque estamos en presencia de una llamada a un procedimiento.
+//                                        if(!token.get_lexema().equalsIgnoreCase(";") && (simbolo instanceof Procedimiento)){
+//                                            System.out.println("\nError Semantico : *** No se puede utilizar un Procedimiento como operando en una expresion aritmetica, relacional o booleana *** linea "+tk.get_linea_programa());
+//                                            System.exit(1);
+//                                        }
+                                        
+                                        //--- Codigo MEPA ---
+                                        Simbolo subprograma=this.obtener_valor(ts, tk);
+                                        if(subprograma instanceof Procedimiento)
+                                            this.mepa.add(new ParMepa("","LLPR "+((Procedimiento)subprograma).get_etiqueta()));
                                         
                                         break;
                         }
@@ -1188,9 +1312,17 @@ public class Semantico {
     private void alternativa (TablaSimbolos ts){
         Strings alternativa_tipo=new Strings("");
         Strings expresion_tipo=new Strings("");
+        Strings expresion_cod=new Strings("");
+        String etiqueta_if="";
+        String etiqueta_else="";
         Token token=null;
         
-        expresion(ts, expresion_tipo);
+        expresion(ts, expresion_tipo, expresion_cod);
+        
+        this.codigo_mepa += expresion_cod.get_string();
+        //this.mepa.add(new ParMepa("",expresion_cod.get_string()));
+        etiqueta_if=this.generar_etiqueta();
+        etiqueta_else=this.generar_etiqueta();
         
         //--- Esquema de traduccion ---
         if(expresion_tipo.get_string().equalsIgnoreCase("boolean"))
@@ -1201,10 +1333,15 @@ public class Semantico {
             System.exit(1);
         }
         
+        //Si el tope de la pila es falso, saltamos hacia el cuerpo del else.
+        this.codigo_mepa += "\nDSVF "+etiqueta_else+"\n";
+        this.mepa.add(new ParMepa("","DSVF "+etiqueta_else));
+        
         match("then");
         
         token=this.tokens_sintacticos.get(this.preanalisis);
         
+        //Cuerpo del if.
         if(token.get_lexema().equalsIgnoreCase("begin")){ //Presencia de un bloque.
             //this.preanalisis++;
             bloque(ts);
@@ -1214,24 +1351,46 @@ public class Semantico {
         token=this.tokens_sintacticos.get(this.preanalisis);
         
         if(token.get_lexema().equalsIgnoreCase("else")){
+            
+            this.codigo_mepa += "\nDSVS "+etiqueta_if+"\n";
+            this.mepa.add(new ParMepa("","DSVS "+etiqueta_if));
+            
+            this.codigo_mepa += etiqueta_else+" NADA\n";
+            this.mepa.add(new ParMepa(etiqueta_else,"NADA"));
+            
             this.preanalisis++;
             token=this.tokens_sintacticos.get(this.preanalisis);
             
+            //Cuerpo del else.
             if(token.get_lexema().equalsIgnoreCase("begin")){
                 //this.preanalisis++;
                 bloque(ts);
             }else
                 sentencia(ts);
-        }else
-            ; //Presencia de cadena nula. Significa que no hay bloque else.
+            
+            this.codigo_mepa += etiqueta_if+" NADA\n";
+            this.mepa.add(new ParMepa(etiqueta_if,"NADA"));
+        }else{
+            //; //Presencia de cadena nula. Significa que no hay bloque else.
+            this.mepa.add(new ParMepa(etiqueta_else,"NADA"));
+        }
     }
     
     private void repetitiva (TablaSimbolos ts){
         Strings expresion_tipo=new Strings("");
+        Strings expresion_cod=new Strings("");
         Strings repetitiva_tipo=new Strings("");
         Token token=null;
+        String etiqueta_repetir=this.generar_etiqueta();
+        String fin_while=this.generar_etiqueta();
         
-        expresion(ts, expresion_tipo);
+        //--- Codigo MEPA ---
+        this.mepa.add(new ParMepa(etiqueta_repetir,"NADA"));
+        
+        expresion(ts, expresion_tipo, expresion_cod);
+        
+        //--- Codigo MEPA ---
+        this.mepa.add(new ParMepa("","DSVF "+fin_while));
         
         //--- Esquema de traduccion ---
         if(expresion_tipo.get_string().equalsIgnoreCase("boolean"))
@@ -1246,16 +1405,22 @@ public class Semantico {
         
         token=this.tokens_sintacticos.get(this.preanalisis);
         
+        //Cuerpo del while.
         if(token.get_lexema().equalsIgnoreCase("begin")){
             //this.preanalisis++;
             bloque(ts);
         }else
             sentencia(ts);
+        
+        //--- Codigo MEPA ---
+        this.mepa.add(new ParMepa("","DSVS "+etiqueta_repetir));
+        this.mepa.add(new ParMepa(fin_while,"NADA"));
     }
     
     private void seleccion_multiple (TablaSimbolos ts){
         Strings seleccion_multiple=new Strings("");
         Strings expresion_tipo=new Strings("");
+        Strings expresion_cod=new Strings("");
         Token token;
 //        Token token=this.tokens_sintacticos.get(this.preanalisis);
 //        
@@ -1281,7 +1446,8 @@ public class Semantico {
 //                
 //                this.preanalisis++;
 //            }
-        expresion(ts, expresion_tipo);
+        
+        expresion(ts, expresion_tipo, expresion_cod);
         
         //--- ESquema de traduccion ---
         if(expresion_tipo.get_string().equalsIgnoreCase("integer"))
@@ -1396,24 +1562,30 @@ public class Semantico {
     private void read (TablaSimbolos ts){
         Strings procedimiento_es=new Strings("");
         String tipo="";
+        Variable var=null;
         
         match("(");
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         
         if(identificador(token))
             this.preanalisis++;
-        
+                
         //--- Esquema de traduccion ---
         Simbolo simbolo=this.obtener_valor(ts, token);
         if(simbolo != null){
             if(simbolo instanceof Variable){
                 TipoDato tipo_dato=(TipoDato)((Variable)simbolo).get_tipo_dato();
+                var=((Variable)simbolo);
                 if(tipo_dato.get_nombre_tipo().equalsIgnoreCase("integer"))
                     procedimiento_es.set_string("");
                 else{
                     System.out.println("\nError Semantico : *** Tipos incompatibles, el precedimiento de entrada-salida \"read\" requiere como argumento una variable de tipo integer. Se encontro una variable de tipo "+tipo_dato.get_nombre_tipo()+" *** Linea "+token.get_linea_programa());
                     System.exit(1);
                 }
+                
+                //--- Codigo MEPA ---
+                this.mepa.add(new ParMepa("","ALVL "+ts.get_nivel_lexico()+", "+var.get_espacio_asignado()));
+                this.mepa.add(new ParMepa("","LEER"));
             }else{
                 if(simbolo instanceof Constante){
                     System.out.println("\nError Semantico : *** No es posible modificar el contenido de una CONSTANTE en tiempo de ejecucion *** Linea "+token.get_linea_programa());
@@ -1462,9 +1634,14 @@ public class Semantico {
         match("(");
         
         Strings expresion_tipo=new Strings("");
-        expresion(ts, expresion_tipo);
+        Strings expresion_cod=new Strings("");
+        
+        expresion(ts, expresion_tipo, expresion_cod);
         
         //--- Esquema de traduccion ---
+        
+        //--- Codigo MEPA ---
+        this.mepa.add(new ParMepa("","IMPR"));
         
         match(")");
     }
@@ -1475,7 +1652,8 @@ public class Semantico {
         match("(");
         
         Strings expresion_tipo=new Strings("");
-        expresion(ts, expresion_tipo);
+        Strings expresion_cod=new Strings("");
+        expresion(ts, expresion_tipo, expresion_cod);
         
         //--- Esquema de traduccion ---
         if(expresion_tipo.get_string().equalsIgnoreCase("integer") || expresion_tipo.get_string().equalsIgnoreCase("boolean"))
@@ -1495,7 +1673,8 @@ public class Semantico {
         match("(");
         
         Strings expresion_tipo=new Strings("");
-        expresion(ts, expresion_tipo);
+        Strings expresion_cod=new Strings("");
+        expresion(ts, expresion_tipo, expresion_cod);
         
         //--- Esquema de traduccion ---
         if(expresion_tipo.get_string().equalsIgnoreCase("integer") || expresion_tipo.get_string().equalsIgnoreCase("boolean"))
@@ -1534,7 +1713,8 @@ public class Semantico {
             case "true"    :
             case "false"   : //this.preanalisis++;
                              Strings expresion_tipo_1=new Strings("");
-                             expresion(ts, expresion_tipo_1);
+                             Strings expresion_cod_1=new Strings("");
+                             expresion(ts, expresion_tipo_1, expresion_cod_1);
                              argumentos.add(new Parametro("expresion compuesta", new TipoDato(expresion_tipo_1.get_string(),1,expresion_tipo_1.get_string(),"no se")));
                              //argumentos.add(new Parametro(token.get_lexema(), new TipoDato("boolean",1,"boolean","primitivo")));
                              break;
@@ -1542,10 +1722,15 @@ public class Semantico {
             default : //exp();
                       //    En esta seccion solamnete nos interesa en tipo de cada argumento.
                       Strings expresion_tipo=new Strings("");
-                      expresion(ts, expresion_tipo);
+                      Strings expresion_cod=new Strings("");
+                      expresion(ts, expresion_tipo, expresion_cod);
                       
                       //--- Esquema de traduccion ---
                       argumentos.add(new Parametro("expresion compuesta", new TipoDato(expresion_tipo.get_string(),1,expresion_tipo.get_string(),"no se")));
+                      
+                      //--- Codigo MEPA ---
+                      this.codigo_mepa += expresion_cod.get_string();
+                      //this.mepa.add(new ParMepa("", expresion_cod.get_string()));
         }
     }
     
@@ -1553,11 +1738,18 @@ public class Semantico {
     //--- Expresiones -------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
     
-    private void expresion (TablaSimbolos ts, Strings expresion_tipo){
+    //Por convencion los atributos para la generacion de codigo van al final de cada llamada.
+    //El atributo bis, siempre se modifica en la funcion que lo contiene como parametro. Se utiliza en la misma para
+    //hacer otros chequeos de tipo.
+    //Las expresiones se utilizan en las llamadas a subprogramas y en el lado derecho de una asignacion.
+    private void expresion (TablaSimbolos ts, Strings expresion_tipo, Strings expresion_cod){
         Strings t_tipo=new Strings("");
         Strings e1_tipo=new Strings("");
         
-        T(ts, t_tipo);E1(ts, e1_tipo);
+        Strings t_cod=new Strings("");
+        Strings e1_cod=new Strings("");
+        
+        T(ts, t_tipo, t_cod);E1(ts, e1_tipo, e1_cod);
         
         //--- Esquema de traduccion ---
         if(e1_tipo.get_string().equalsIgnoreCase("void"))
@@ -1570,15 +1762,29 @@ public class Semantico {
                 System.exit(1);
             }
         
+        //--- Codigo MEPA ---
+        if(e1_cod.get_string().equalsIgnoreCase("void")){
+            expresion_cod.set_string(t_cod.get_string());
+            //this.mepa.add(new ParMepa("",t_cod.get_string()));
+        }else{
+            expresion_cod.set_string(t_cod.get_string() +"\n"+ e1_cod.get_string());
+            //this.mepa.add(new ParMepa("",t_cod.get_string()));
+            //this.mepa.add(new ParMepa("",e1_cod.get_string()));
+        }
+        
         //System.out.println("En expresion se sintetitiza el tipo expresion_tipo : "+expresion_tipo.get_string());
     }
     
-    private void T (TablaSimbolos ts, Strings t_tipo){
+    private void T (TablaSimbolos ts, Strings t_tipo, Strings t_cod){
         Strings f_tipo=new Strings("");
         Strings f_tipo_bis=new Strings("");
         Strings t1_tipo=new Strings("");
         
-        F(ts, f_tipo);T1(ts, f_tipo_bis, t1_tipo);
+        Strings f_cod=new Strings("");
+        Strings f_cod_bis=new Strings("");
+        Strings t1_cod=new Strings("");
+        
+        F(ts, f_tipo, f_cod);T1(ts, f_tipo_bis, t1_tipo, f_cod_bis, t1_cod);
         
         //--- Esquema de traduccion ---
         if(t1_tipo.get_string().equalsIgnoreCase("void"))
@@ -1591,16 +1797,26 @@ public class Semantico {
                 System.exit(1);
             }
         
+        //--- Codigo MEPA ---
+        if(t1_cod.get_string().equalsIgnoreCase("void")){
+            t_cod.set_string(f_cod.get_string());
+            //this.mepa.add(new ParMepa("",f_cod.get_string()));
+        }else{
+            t_cod.set_string(f_cod.get_string() +"\n"+ t1_cod.get_string());
+            //this.mepa.add(new ParMepa("",f_cod.get_string()));
+            //this.mepa.add(new ParMepa("",t1_cod.get_string()));
+        }
         //System.out.println("En T, f_tipo : "+f_tipo.get_string()+" y t1_tipo : "+t1_tipo.get_string());
         //System.out.println("En T, se sintetitiza el tipo t_tipo : "+t_tipo.get_string());
     }
     
-    private void F (TablaSimbolos ts, Strings f_tipo){
+    private void F (TablaSimbolos ts, Strings f_tipo, Strings f_cod){
         Strings g_tipo=new Strings("");
+        Strings g_cod=new Strings("");
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         
         if(token.get_lexema().equalsIgnoreCase("not")){
-            this.preanalisis++;G(ts, g_tipo);
+            this.preanalisis++;G(ts, g_tipo, g_cod);
             
             //--- Esquema de traduccion ---
             if(g_tipo.get_string().equalsIgnoreCase("boolean"))
@@ -1609,25 +1825,40 @@ public class Semantico {
                 System.out.println("\nError Semantico : *** Tipos incompatibles, el operador \"not\" requiere un operando de tipo boolean. Precede a un operando de tipo "+g_tipo.get_string()+" *** Linea "+token.get_linea_programa());
                 System.exit(1);
             }
-        }else{
-            G(ts, g_tipo);
             
+            //--- Codigo MEPA ---
+            f_cod.set_string(g_cod.get_string() +"\n"+ "NEGA");
+            //this.mepa.add(new ParMepa("",g_cod.get_string()));
+            this.mepa.add(new ParMepa("","NEGA"));
+            
+        }else{
+            G(ts, g_tipo, g_cod);
+            
+            //--- Esquema de traduccion ---
             f_tipo.set_string(g_tipo.get_string());
+            
+            //--- Codigo MEPA ---
+            f_cod.set_string(g_cod.get_string());
+            //this.mepa.add(new ParMepa("",g_cod.get_string()));
         }
         
         //System.out.println("En F, el tipo g_tipo : "+g_tipo.get_string());
         //System.out.println("En F, se sintetitiza el tipo f_tipo : "+f_tipo.get_string());
     }
     
-    private void G (TablaSimbolos ts, Strings g_tipo){
+    private void G (TablaSimbolos ts, Strings g_tipo, Strings g_cod){
         Strings h_tipo=new Strings("");
         Strings h_tipo_bis=new Strings("");//Guarda el tipo que sintetiza la funcion H que se llama dentro de G1.
         Strings g1_tipo=new Strings("");
         //El problema esta en no replicar h_tipo, por la rama H queda en boolean pero como es el mismo objeto el
         //que pasa por la rama G1 se vuelve a modificar con integer.
         
-        H(ts, h_tipo);System.out.println("En G pasa esto, h_tipo despues de H es : "+h_tipo.get_string());
-        G1(ts, h_tipo_bis, g1_tipo);System.out.println("mientras que despues de G1 el valor de h_tipo_bis es : "+h_tipo_bis.get_string());
+        Strings h_cod=new Strings("");
+        Strings h_cod_bis=new Strings("");
+        Strings g1_cod=new Strings("");
+        
+        H(ts, h_tipo, h_cod);System.out.println("En G pasa esto, h_tipo despues de H es : "+h_tipo.get_string());
+        G1(ts, h_tipo_bis, g1_tipo, h_cod_bis, g1_cod);System.out.println("mientras que despues de G1 el valor de h_tipo_bis es : "+h_tipo_bis.get_string());
         System.out.println("Y el valor de G1 es : "+g1_tipo.get_string());
         //System.exit(1);
         //--- Esquema de traduccion ---
@@ -1641,16 +1872,30 @@ public class Semantico {
                 System.exit(1);
             }
         
-        System.out.println("En G, el tipo h_tipo : "+h_tipo.get_string()+" y g1_tipo : "+g1_tipo.get_string());
-        System.out.println("En G, se sintetiza el tipo g_tipo : "+g_tipo.get_string()+" G1 es "+g1_tipo.get_string());
+        //--- Codigo MEPA ---
+        if(g1_cod.get_string().equalsIgnoreCase("void")){
+            g_cod.set_string(h_cod.get_string());
+            //this.mepa.add(new ParMepa("",h_cod.get_string()));
+        }else{
+            g_cod.set_string(h_cod.get_string() +"\n"+ g1_cod.get_string());
+            //this.mepa.add(new ParMepa("",h_cod.get_string()));
+            //this.mepa.add(new ParMepa("",g1_cod.get_string()));
+        }
+        
+        //System.out.println("En G, el tipo h_tipo : "+h_tipo.get_string()+" y g1_tipo : "+g1_tipo.get_string());
+        //System.out.println("En G, se sintetiza el tipo g_tipo : "+g_tipo.get_string()+" G1 es "+g1_tipo.get_string());
     }
     
-    private void H (TablaSimbolos ts, Strings h_tipo){
+    private void H (TablaSimbolos ts, Strings h_tipo, Strings h_cod){
         Strings i_tipo=new Strings("");
         Strings i_tipo_bis=new Strings("");
         Strings h1_tipo=new Strings("");
         
-        I(ts, i_tipo);H1(ts, i_tipo_bis, h1_tipo);
+        Strings i_cod=new Strings("");
+        Strings i_cod_bis=new Strings("");
+        Strings h1_cod=new Strings("");
+        
+        I(ts, i_tipo, i_cod);H1(ts, i_tipo_bis, h1_tipo, i_cod_bis, h1_cod);
         
         //--- Esquema de traduccion ---
         if(h1_tipo.get_string().equalsIgnoreCase("void"))
@@ -1663,16 +1908,29 @@ public class Semantico {
                 System.exit(1);
             }
         
-        System.out.println("En H, el tipo i_tipo : "+i_tipo.get_string()+" y h1_tipo : "+h1_tipo.get_string());
-        System.out.println("En H, se sintetitiza el tipo h_tipo : "+h_tipo.get_string());
+        //--- Codigo MEPA ---
+        if(h1_cod.get_string().equalsIgnoreCase("void")){
+            h_cod.set_string(i_cod.get_string());
+            //this.mepa.add(new ParMepa("",i_cod.get_string()));
+        }else{
+            h_cod.set_string(i_cod.get_string() +"\n"+ h1_cod.get_string());
+            //this.mepa.add(new ParMepa("",i_cod.get_string()));
+            //this.mepa.add(new ParMepa("",h1_cod.get_string()));
+        }
+        //System.out.println("En H, el tipo i_tipo : "+i_tipo.get_string()+" y h1_tipo : "+h1_tipo.get_string());
+        //System.out.println("En H, se sintetitiza el tipo h_tipo : "+h_tipo.get_string());
     }
     
-    private void I (TablaSimbolos ts, Strings i_tipo){
+    private void I (TablaSimbolos ts, Strings i_tipo, Strings i_cod){
         Strings j_tipo=new Strings("");
         Strings j_tipo_bis=new Strings("");
         Strings i1_tipo=new Strings("");
         
-        J(ts, j_tipo);I1(ts, j_tipo_bis, i1_tipo);
+        Strings j_cod=new Strings("");
+        Strings j_cod_bis=new Strings("");
+        Strings i1_cod=new Strings("");
+        
+        J(ts, j_tipo, j_cod);I1(ts, j_tipo_bis, i1_tipo, j_cod_bis, i1_cod);
         
         //--- Esquema de traduccion ---
         if(i1_tipo.get_string().equalsIgnoreCase("void"))
@@ -1685,16 +1943,27 @@ public class Semantico {
                 System.exit(1);
             }
         
-        System.out.println("En I, el tipo j_tipo : "+j_tipo.get_string()+" y i1_tipo : "+i1_tipo.get_string());
-        System.out.println("En I, se sintetitiza el tipo i_tipo : "+i_tipo.get_string());
+        //--- Codigo MEPA ---
+        if(i1_cod.get_string().equalsIgnoreCase("void")){
+            i_cod.set_string(j_cod.get_string());
+            //this.mepa.add(new ParMepa("",j_cod.get_string()));
+        }else{
+            i_cod.set_string(j_cod.get_string() +"\n"+ i1_cod.get_string());
+            //this.mepa.add(new ParMepa("",j_cod.get_string()));
+            //this.mepa.add(new ParMepa("",i1_cod.get_string()));
+        }
+        
+        //System.out.println("En I, el tipo j_tipo : "+j_tipo.get_string()+" y i1_tipo : "+i1_tipo.get_string());
+        //System.out.println("En I, se sintetitiza el tipo i_tipo : "+i_tipo.get_string());
     }
     
-    private void J (TablaSimbolos ts, Strings j_tipo){
+    private void J (TablaSimbolos ts, Strings j_tipo, Strings j_cod){
         //--- Para sintetizar el tipo de un operando de expresion ---
         Strings k_tipo=new Strings("");
+        Strings k_cod=new Strings("");
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         if(token.get_lexema().equalsIgnoreCase("-")){
-            this.preanalisis++;K(ts, k_tipo);
+            this.preanalisis++;K(ts, k_tipo, k_cod);
             
             //--- Esquema de traduccion ---
             if(k_tipo.get_string().equalsIgnoreCase("integer"))
@@ -1708,27 +1977,47 @@ public class Semantico {
                     System.exit(1);
                 }
             }
+            
+            //--- Codigo MEPA ---
+            j_cod.set_string(k_cod.get_string() +"\n"+ "NEGA");
+            this.mepa.add(new ParMepa("",k_cod.get_string()));
+            this.mepa.add(new ParMepa("","NEGA"));
+            
         }else{
-            K(ts, k_tipo);
+            K(ts, k_tipo, k_cod);
             //  Sintetizamos el tipo que contiene k_tipo.
             j_tipo.set_string(k_tipo.get_string());
+            //  Sintetizamos el codigo MEPA que proviene de las hojas.
+            j_cod.set_string(k_cod.get_string());
+            this.mepa.add(new ParMepa("",k_cod.get_string()));
         }
         
-        System.out.println("En J, el tipo k_tipo : "+k_tipo.get_string());
-        System.out.println("En J, se sintetitiza el tipo j_tipo : "+j_tipo.get_string());
+        //System.out.println("En J, el tipo k_tipo : "+k_tipo.get_string());
+        //System.out.println("En J, se sintetitiza el tipo j_tipo : "+j_tipo.get_string());
     }
     
-    private void I1 (TablaSimbolos ts, Strings j_tipo, Strings i1_tipo){
+    private void I1 (TablaSimbolos ts, Strings j_tipo, Strings i1_tipo, Strings j_cod, Strings i1_cod){
         
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         switch(token.get_lexema()){
             case "*" :
             case "/" : this.preanalisis++;
-                       J(ts, j_tipo);
-                       I1(ts, j_tipo, i1_tipo);
+                       J(ts, j_tipo, j_cod);System.out.println("\nEn I1, despues de J, j_tipo es : "+j_tipo.get_string());
+                       
+                       I1(ts, j_tipo, i1_tipo, j_cod, i1_cod);System.out.println("\nEn I1, despues de I1, j_tipo_bis es : "+j_tipo.get_string());
                        
                        //--- Esquema de traduccion ---
                        if(i1_tipo.get_string().equalsIgnoreCase("void")){
+                           //El tema con j_tipo es asi: el mismo objeto pasa por parametro en J e I1. Como estamos en presencia
+                           //de una operacion entera, el j_tipo que sintetizamos en J es integer. El mismo objeto pasa a I1, donde
+                           //puede modificarse y adquirir dos valores.
+                           //a) integer : no altera el procedimiento, porque deberiamos sintetizar un tipo integer en I1 para que
+                           //el chequeo sea exitoso. Eso es lo que se hace al preguntar si el tipo es integer. Por otra parte
+                           //J nos conduce a una hoja por lo tanto j_tipo en esta llamada queda con el valor de debemos sintetizar.
+                           //b) otro : j_tipo podria adquirir otro tipo, ej : boolean, en I1. En este caso siempre preguntamos que
+                           //el tipo sintetizado sea integer. Si no es integer emitimos un error.
+                           //Si pasamos otro objeto, ej . j_tipo_bis, queda vacio. En este caso debemos incluir una nueva 
+                           //condicion.
                            if(j_tipo.get_string().equalsIgnoreCase("integer"))
                                i1_tipo.set_string("integer");
                            else{
@@ -1736,22 +2025,36 @@ public class Semantico {
                                System.exit(1);
                            }
                        }
+                       
+                       //--- Codigo MEPA ---
+                       if(i1_cod.get_string().equalsIgnoreCase("void")){
+                           i1_cod.set_string(j_cod.get_string() +"\n"+ this.get_inst(token));
+                           //this.mepa.add(new ParMepa("",j_cod.get_string()));
+                           this.mepa.add(new ParMepa("",this.get_inst(token)));
+                       }else{
+                           i1_cod.set_string(j_cod.get_string() +"\n"+ i1_cod.get_string());
+                           //this.mepa.add(new ParMepa("",j_cod.get_string()));
+                           //this.mepa.add(new ParMepa("",i1_cod.get_string()));
+                           this.mepa.add(new ParMepa("",this.get_inst(token))); //Tenemos un MULT-DIVI consecutivo en el archivo mepa.
+                       }
+                       
                        break;
             default : //; //Presencia de cadena nula.
                       i1_tipo.set_string("void");
+                      i1_cod.set_string("void");
         }
         
         //System.out.println("En I1, el tipo j_tipo : "+j_tipo.get_string());
         //System.out.println("En I1, se sintetitiza el tipo i1_tipo : "+i1_tipo.get_string());
     }
     
-    private void H1 (TablaSimbolos ts, Strings i_tipo, Strings h1_tipo){
+    private void H1 (TablaSimbolos ts, Strings i_tipo, Strings h1_tipo, Strings i_cod, Strings h1_cod){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         switch(token.get_lexema()){
             case "+" :
             case "-" : this.preanalisis++;
-                       I(ts, i_tipo);
-                       H1(ts, i_tipo, h1_tipo);
+                       I(ts, i_tipo, i_cod);System.out.println("\nEn H1, despues de I, i_tipo es : "+i_tipo.get_string());
+                       H1(ts, i_tipo, h1_tipo, i_cod, h1_cod);System.out.println("\nEn H1, despues de H1, i_tipo es : "+i_tipo.get_string());
                        
                        //--- Esquema de traduccion ---
                        if(h1_tipo.get_string().equalsIgnoreCase("void")){
@@ -1763,16 +2066,29 @@ public class Semantico {
                            }
                        }
                        
+                       //--- Codigo MEPA ---
+                       if(h1_cod.get_string().equalsIgnoreCase("void")){
+                           h1_cod.set_string(i_cod.get_string() +"\n"+ this.get_inst(token));
+                           //this.mepa.add(new ParMepa("",i_cod.get_string()));
+                           this.mepa.add(new ParMepa("",this.get_inst(token)));
+                       }else{
+                           h1_cod.set_string(i_cod.get_string() +"\n"+ h1_cod.get_string() + "\n" + this.get_inst(token));
+                           //this.mepa.add(new ParMepa("",i_cod.get_string()));
+                           //this.mepa.add(new ParMepa("",h1_cod.get_string()));
+                           this.mepa.add(new ParMepa("",this.get_inst(token)));
+                       }
                        break;
             default : //; //Presencia de cadena nula.
                       h1_tipo.set_string("void");
+                      
+                      h1_cod.set_string("void");
         }
         
         //System.out.println("En H1, el tipo i_tipo : "+i_tipo.get_string());
         //System.out.println("En H1, se sintetitiza el tipo h1_tipo : "+h1_tipo.get_string());
     }
     
-    private void G1 (TablaSimbolos ts, Strings h_tipo, Strings g1_tipo){
+    private void G1 (TablaSimbolos ts, Strings h_tipo, Strings g1_tipo, Strings h_cod, Strings g1_cod){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         switch(token.get_lexema()){
             case ">"  :
@@ -1781,8 +2097,9 @@ public class Semantico {
             case "<=" :
             case "="  :
             case "<>" : this.preanalisis++;
-                        H(ts, h_tipo);
-                        G1(ts, h_tipo, g1_tipo);
+                        H(ts, h_tipo, h_cod);System.out.println("\nEn G1, despues de H, h_tipo es : "+h_tipo.get_string());
+                        //Debemos usr un h_tipo_bis???.
+                        G1(ts, h_tipo, g1_tipo, h_cod, g1_cod);System.out.println("\nEn G1, despues de G1, h_tipo es : "+h_tipo.get_string());
                         
                         //--- Esquema de traduccion ---
                         if(g1_tipo.get_string().equalsIgnoreCase("void")){
@@ -1794,21 +2111,36 @@ public class Semantico {
                             }
                         }else
                             ;//Que pasa si g1_tipo no es void???. Esto no es posible porque solamente la regla G1 genera exp relacionales.
+                        
+                        //--- Codigo MEPA ---
+                        if(g1_cod.get_string().equalsIgnoreCase("void")){
+                            g1_cod.set_string(h_cod.get_string() +"\n"+ this.get_inst(token));
+                            //this.mepa.add(new ParMepa("",h_cod.get_string()));
+                            this.mepa.add(new ParMepa("",this.get_inst(token)));
+                        }else{
+                            g1_cod.set_string(h_cod.get_string() +"\n"+ g1_cod.get_string() + "\n" + this.get_inst(token));
+                            //this.mepa.add(new ParMepa("",h_cod.get_string()));
+                            //this.mepa.add(new ParMepa("",g1_cod.get_string()));
+                            this.mepa.add(new ParMepa("",this.get_inst(token)));
+                        }
                         break;
             default : //; //Presencia de cadena nula.
                       g1_tipo.set_string("void");
+                      
+                      //--- Codigo MEPA ---
+                      g1_cod.set_string("void");
         }
         
-        System.out.println("En G1, el tipo h_tipo : "+h_tipo.get_string());
-        System.out.println("En G1, se sintetitiza el tipo g1_tipo : "+g1_tipo.get_string());
+        //System.out.println("En G1, el tipo h_tipo : "+h_tipo.get_string());
+        //System.out.println("En G1, se sintetitiza el tipo g1_tipo : "+g1_tipo.get_string());
     }
     
-    private void T1 (TablaSimbolos ts, Strings f_tipo, Strings t1_tipo){
+    private void T1 (TablaSimbolos ts, Strings f_tipo, Strings t1_tipo, Strings f_cod, Strings t1_cod){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         if(token.get_lexema().equalsIgnoreCase("and")){
             this.preanalisis++;
-            F(ts, f_tipo);
-            T1(ts, f_tipo, t1_tipo);
+            F(ts, f_tipo, f_cod);System.out.println("\nEn T1, despues de F, f_tipo es : "+f_tipo.get_string());
+            T1(ts, f_tipo, t1_tipo, f_cod, t1_cod);System.out.println("\nEn T1, despues de T1, f_tipo es : "+f_tipo.get_string());
             
             //--- Esquema de traduccion ---
             if(t1_tipo.get_string().equalsIgnoreCase("void")){
@@ -1819,20 +2151,35 @@ public class Semantico {
                     System.exit(1);
                 }
             }
-        }else//; //Presencia de cadena nula.
+            
+            //--- Codigo MEPA ---
+            if(t1_cod.get_string().equalsIgnoreCase("void")){
+                t1_cod.set_string(f_cod.get_string() + "\n" + "CONJ");
+                //this.mepa.add(new ParMepa("",f_cod.get_string()));
+                this.mepa.add(new ParMepa("","CONJ"));
+            }else{
+                t1_cod.set_string(f_cod.get_string() + "\n" + t1_cod.get_string() + "\n" + this.get_inst(token));
+                //this.mepa.add(new ParMepa("",f_cod.get_string()));
+                //this.mepa.add(new ParMepa("",t1_cod.get_string()));
+                this.mepa.add(new ParMepa("",this.get_inst(token)));
+            }
+            
+        }else{//; //Presencia de cadena nula.
             t1_tipo.set_string("void");
-        
+            t1_cod.set_string("void");
+        }
         //System.out.println("En T1, el tipo f_tipo : "+f_tipo.get_string());
         //System.out.println("En T1, se sintetitiza el tipo t1_tipo : "+t1_tipo.get_string());
     }
     
-    private void E1 (TablaSimbolos ts, Strings e1_tipo){
+    private void E1 (TablaSimbolos ts, Strings e1_tipo, Strings e1_cod){
         Strings t_tipo=new Strings("");
+        Strings t_cod=new Strings("");
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         if(token.get_lexema().equalsIgnoreCase("or")){
             this.preanalisis++;
-            T(ts, t_tipo);
-            E1(ts, e1_tipo);
+            T(ts, t_tipo, t_cod);
+            E1(ts, e1_tipo, e1_cod);
             
             //--- Esquema de traduccion ---
             if(e1_tipo.get_string().equalsIgnoreCase("void")){
@@ -1844,16 +2191,31 @@ public class Semantico {
                 }
             }
             
+            //--- Codigo MEPA ---
+            if(e1_cod.get_string().equalsIgnoreCase("void")){
+                e1_cod.set_string(t_cod.get_string() + "\n" + "DISJ");
+                //this.mepa.add(new ParMepa("",t_cod.get_string()));
+                this.mepa.add(new ParMepa("","DISJ"));
+            }else{
+                e1_cod.set_string(t_cod.get_string() + "\n" + e1_cod.get_string() + "\n" + "DISJ");
+                //this.mepa.add(new ParMepa("",t_cod.get_string()));
+                //this.mepa.add(new ParMepa("",e1_cod.get_string()));
+                this.mepa.add(new ParMepa("","DISJ"));
+            }
+            
         }else{
             //; //Presencia de cadena nula.
             e1_tipo.set_string("void");
+            
+            //--- Codigo MEPA ---
+            e1_cod.set_string("void");
         }
         
         //System.out.println("En E1, el tipo t_tipo : "+t_tipo.get_string());
         //System.out.println("En E1, se sintetitiza el tipo e1_tipo : "+e1_tipo.get_string());
     }
     
-    private void K (TablaSimbolos ts, Strings k_tipo){
+    private void K (TablaSimbolos ts, Strings k_tipo, Strings k_cod){
         Simbolo simbolo=null;
         Token id=null;
         Token token=this.tokens_sintacticos.get(this.preanalisis);
@@ -1861,8 +2223,9 @@ public class Semantico {
         if(token.get_lexema().equalsIgnoreCase("(")){
             
             Strings tipo_syn=new Strings("");
+            Strings tipo_syn_cod=new Strings("");
             this.preanalisis++;
-            expresion(ts, tipo_syn);
+            expresion(ts, tipo_syn, tipo_syn_cod);
             //  Sintetizamos el tipo de expresion.
             k_tipo.set_string(tipo_syn.get_string());
             //System.out.println("\n contenido de k_tipo en exp "+k_tipo.get_string());
@@ -1871,6 +2234,8 @@ public class Semantico {
             if(digito(token)){
                 this.preanalisis++;
                 k_tipo.set_string("integer");
+                k_cod.set_string("APCT "+token.get_lexema());
+                
             }else{
                 
                 switch(token.get_lexema()){
@@ -1902,7 +2267,7 @@ public class Semantico {
                                      
                                      break;
                     
-                    default: 
+                    default:    //Estamos en el lado derecho de una asignacion.
                                 if(identificador(token)){
                                     //id mantiene una copia del token que en principio se corresponde con un identificador.
                                     id=token;
@@ -2029,8 +2394,23 @@ public class Semantico {
                                         default : //; //Solamente tenemos un identificador.
                                                   if(simbolo instanceof Variable){
                                                       TipoDato tipo=(TipoDato)((Variable)simbolo).get_tipo_dato();
+                                                      Variable var=((Variable)simbolo);
                                                       k_tipo.set_string(tipo.get_nombre_tipo());
-                                                      //System.out.println("\nEste es el tipo que sintetizamos : "+k_tipo.get_string()+" Token : "+id.get_lexema());
+                                                                                                                                                                  
+                                                      if(this.es_parametro_formal){
+                                                          //Busco el subprograma correspondiente en la cadena estatica.
+                                                          Simbolo subprograma=this.obtener_valor(ts, new Token(ts.get_propietario()));
+                                                          int desplazamiento=-1;
+                                                          if(subprograma instanceof Procedimiento){
+                                                              desplazamiento=((Procedimiento)subprograma).calcular_desplazamiento(id);
+                                                          }else{
+                                                              //desplazamiento=((Funcion)subprograma).calcular_desplazamineto(id);
+                                                          }
+                                                          System.out.println("\nEste es el valor de desplazamiento : "+desplazamiento);
+                                                          k_cod.set_string("APVL "+this.nivel_lexico+", "+desplazamiento+" --> variable: "+id.get_lexema());
+                                                      }else{//Si no es parametro formal, es una variable que pertenece a las definiciones locales o bien a otro subprograma en calidad de variable local o parametro formal.
+                                                          k_cod.set_string("APVL "+this.nivel_lexico+", "+var.get_espacio_asignado()+" --> variable: "+id.get_lexema());
+                                                      }
                                                   }else{
                                                       if(simbolo instanceof Constante){
                                                           k_tipo.set_string(((Constante)simbolo).get_tipo());
@@ -2039,7 +2419,7 @@ public class Semantico {
                                                           if(simbolo instanceof TipoDato){
                                                               k_tipo.set_string(((TipoDato)simbolo).get_nombre_tipo());
                                                           }else
-                                                              if(simbolo instanceof Procedimiento){                                                         
+                                                              if(simbolo instanceof Procedimiento){                                                       
                                                                   System.out.println("\nError Semantico : *** No se puede utilizar un Procedimiento como operando en una expresion aritmetica, relacional o booleana *** linea "+id.get_linea_programa());
                                                                   System.exit(1);
                                                               }
@@ -2064,19 +2444,50 @@ public class Semantico {
         
         while(ts!=null && !fin){
             valor=ts.get(token.get_lexema());
-            if(valor!=null)
+            if(valor!=null){
                 fin=true;
-            else{
+                this.es_parametro_formal=false;
+                this.nivel_lexico=ts.get_nivel_lexico();//Guardamos el nivel lexico del identificador encontrado.
+            }else{
                 //Buscamos el identificador en la lista de parametros formales del subprograma propietario de la TS LOCAL.
                 valor=ts.obtener_parametro_formal(token);
-                if(valor != null)
+                if(valor != null){
                     fin=true;
-                else//Si no encontramos el identificador en la lista de parametros formales continuamos buscando en la cadena estatica.
-                    ts=ts.get_ts_superior();
+                    this.es_parametro_formal=true;
+                    this.nivel_lexico=ts.get_nivel_lexico();//Guardamos el nivel lexico del identificado encontrado.
+                }else//Si no encontramos el identificador en la lista de parametros formales continuamos buscando en la cadena estatica.
+                    ts=ts.get_ts_superior();//SI NOS DESPLAZAMOS POR LA CADENA ESTATICA EL NIVEL LEXICO CAMBIA!.
             }
         }
         
         return valor;
+    }
+    
+    private String get_inst (Token token){
+        String inst="";
+        switch(token.get_lexema()){
+            case "+"     : inst="SUMA"; break;
+            case "-"     : inst="SUST"; break;
+            case "*"     : inst="MULT"; break;
+            case "/"     : inst="DIVI"; break;
+            case ">"     : inst="CMMA"; break;
+            case ">="    : inst="CMYI"; break;
+            case "="     : inst="CMIG"; break;
+            case "<"     : inst="CMME"; break;
+            case "<="    : inst="CMNI"; break;
+            case "<>"    : inst="CMDG"; break;
+            case "not"   : inst="NEGA"; break;
+            case "and"   : inst="CONJ"; break;
+            case "or"    : inst="DISJ"; break;
+        }
+        
+        return inst;
+    }
+    
+    private String generar_etiqueta (){
+        String label="L"+this.contador;
+        this.contador++;
+        return label;
     }
     
 }

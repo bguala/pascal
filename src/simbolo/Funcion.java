@@ -16,6 +16,7 @@ public class Funcion extends Simbolo {
     private ArrayList<Parametro> lista_parametros;
     private String pasaje_parametro;
     private Simbolo tipo_retorno; //Puede ser integer o boolean.
+    private String etiqueta;
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
@@ -49,6 +50,13 @@ public class Funcion extends Simbolo {
     
     public Simbolo get_tipo_retorno (){
         return this.tipo_retorno;
+    }
+    
+    /*
+    * Devuelve la etiqueta simbolica de una funcion para generar codigo MEPA.
+    */
+    public String get_etiqueta (){
+        return this.etiqueta;
     }
     
     //-----------------------------------------------------------------------------------
@@ -158,6 +166,10 @@ public class Funcion extends Simbolo {
         return n;
     }
     
+    /*
+    * Guarda en un unico ArrayList todos los parametros formales de un subprograma. Esto se debe hacer asi porque las
+    * definiciones a,b,c:integer pueden generar problemas.
+    */
     private ArrayList<Parametro> unificar_parametros_formales (){
         ArrayList<Parametro> parametros=new ArrayList();
         //Contiene los parametros que debemos unificar en un solo ArrayList.

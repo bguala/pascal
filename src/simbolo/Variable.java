@@ -30,6 +30,12 @@ public class Variable extends Simbolo {
         this.dato="";
     }
     
+    public Variable(int espacio_asignado, Simbolo tipo_dato){
+        super("",espacio_asignado);
+        this.tipo_dato=tipo_dato;
+        this.dato="";
+    }
+    
     //-----------------------------------------------------------------------------------
     //--- Observadores ------------------------------------------------------------------
     //-----------------------------------------------------------------------------------
@@ -52,6 +58,10 @@ public class Variable extends Simbolo {
     
     public void set_dato (String dato){
         this.dato=dato;
+    }
+    
+    public void set_espacio_asignado (int n){
+        this.espacio_asignado=n;
     }
     
     //-----------------------------------------------------------------------------------
