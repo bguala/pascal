@@ -191,4 +191,33 @@ public class Funcion extends Simbolo {
         
         return parametros;
     }
+    
+    /*
+    * Esta funcion se utiliza para armar el codigo MEPA correspondiente a un parametro formal que se utiliza en el bloque
+    * begin-end de un subprograma. Solamente devuelve el desplazamiento negativo, no podemos armar aqui mismo la 
+    * instruccion MEPA porque no tenemos el nivel lexico.
+    */
+    public int calcular_desplazamiento (Token token){
+        int i=0;
+        int j=0;
+        boolean fin=false;
+        int n=this.lista_parametros.size();
+        String param="";
+                
+        while(!fin && j<n){
+            i++;
+            param=this.lista_parametros.get(j).get_parametro();
+            
+            if(token.get_lexema().equalsIgnoreCase(param))
+                fin=true;
+            
+            j++;
+        }
+        
+        return -1*(n +3 -i);
+    }
+    
+    public int calcular_desplazamiento_nombre_funcion (){
+        return -1*(this.lista_parametros.size() + 3);
+    }
 }

@@ -34,6 +34,7 @@ public class GeneradorCodigo {
     private int i;//Posicion de los parametros formales.
     private boolean es_parametro_formal;//Ayuda a determinar si una varibale es un parametro formal.
     private int nivel_lexico;//Guardamos el nivel lexico de un identificador. Es util cuando nos desplazamos por la cadena estatica.
+    private String etiqueta_principal;//Guardamos una etiqueta si existen declaraciones de subprogramas anidadas en el programa principal.
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
@@ -54,6 +55,7 @@ public class GeneradorCodigo {
         this.i=0;
         this.es_parametro_formal=false;
         this.nivel_lexico=0;
+        this.etiqueta_principal="";
         
         //Agregamos nuevas palabras reservadas.
         this.palabras_reservadas.add("and");
@@ -199,14 +201,21 @@ public class GeneradorCodigo {
         this.codigo_mepa += "\nINPP\n";
         this.mepa.add(new ParMepa("","INPP\n"));
         int nivel_lexico=1;
+        int lmem=0;
         
         encabezado();
         //TS local al programa principal.
         definicion(this.tabla_simbolos);
         
+        //cant_variables se resetea en cada llamada a declaracion_subprogramas(ts,nivel_lexico).
+        lmem=this.cant_variables;
         //this.codigo_mepa += "\nRMEM "+this.cant_variables+"\n";
         
         declaracion_subprogramas(this.tabla_simbolos,nivel_lexico);
+        
+        //Si existen subprogramas anidados debemos incluir una nueva etiqueta.
+        if(!this.etiqueta_principal.equalsIgnoreCase(""))
+            this.mepa.add(new ParMepa(this.etiqueta_principal,"NADA"));
         
         bloque(this.tabla_simbolos);
         
@@ -218,7 +227,8 @@ public class GeneradorCodigo {
         }
         match(".");
         
-        this.codigo_mepa += "\nPARA\n";
+        //this.codigo_mepa += "\nPARA\n";
+        this.mepa.add(new ParMepa("","LMEM "+lmem));
         this.mepa.add(new ParMepa("","PARA"));
     }
     
@@ -497,7 +507,7 @@ public class GeneradorCodigo {
             token=this.tokens_sintacticos.get(this.preanalisis);
         }
         
-        //Verificamos si el token actual es digito.
+        //Verificamos si el token actual es digito. Este digito forma parte de un subrango.
         if(digito(token)){
             this.preanalisis++;//Avanzamos preanalisis porque se produce un match.
             li=Integer.parseInt(token.get_lexema());
@@ -530,11 +540,36 @@ public class GeneradorCodigo {
         match("]");match("of");//Despues de esta ultima llamada el simbolo de preanalisis queda posicionado en el tipo del arreglo.
 
         //Completamos parte del arreglo.
-        a.set_limite_inferior(mul_li*li);
-        a.set_limite_superior(mul_ls*ls);
+        li=mul_li*li;
+        ls=mul_ls*ls;
         
-        if(li==0)
+        //En este lugar debemos agregar el chequeo correspondiente si el li de un subrango debe ser menor al ls.
+        
+        a.set_limite_inferior(li);
+        a.set_limite_superior(ls);
+        
+        if(li<0 && ls<0){//Ambos limites son negativos.
+            cantidad=li*(-1) - ls*(-1) + 1;
+        }
+        if(li<0 && ls>0){//El limite inferior es negativo y el superior positivo.
+            cantidad=li*(-1) + ls + 1;
+        }
+        if(li>0 && ls<0){//El limite inferior es positivo y el superior es negativo.
+            cantidad=li + ls*(-1) + 1;
+        }
+        if(li>0 && ls>0){
+            if(li==1)
+                cantidad=ls;
+            else
+                cantidad=ls-li+1;
+        }
+        if(li==0 && ls>0)
             cantidad=ls+1;
+        
+        //Guardamos la cantidad de eltos del arreglo.
+        this.cant_variables += cantidad;
+        //Configuramos el nuevo direccionamiento a partir de la longitud del arreglo.
+        this.direccionamiento += cantidad-1;
         
         a.set_cantidad_elementos(cantidad);
         
@@ -699,8 +734,8 @@ public class GeneradorCodigo {
         Variable var=null;
         for(i=0; i<n; i++){
             lex=ids.get(i);
-            //s.set_lexema(lex);
-            if(s instanceof Variable){//Queremos guardar el direccionamiento en la TS para recuperarlo en las hojas del arbol de derivacion.
+            //Guardamos el direccionamiento en la TS para recuperarlo en las hojas del arbol de derivacion.
+            if(s instanceof Variable){
                 var=new Variable(this.direccionamiento, ((Variable)s).get_tipo_dato());
                 this.direccionamiento++;
                 ts.insertar(lex, var);//s
@@ -923,10 +958,24 @@ public class GeneradorCodigo {
         
         switch(token.get_lexema()){
             case "function"   : this.preanalisis++;
+                                //Si tenemos una declaracion de subprogramas debemos generar una unica etiqueta para el programa
+                                //principal.
+                                if(this.etiqueta_principal.equalsIgnoreCase("")){
+                                    this.etiqueta_principal=this.generar_etiqueta();
+                                    this.mepa.add(new ParMepa("","DSVS "+this.etiqueta_principal));
+                                }
+                                
                                 funcion(ts_superior,null,nivel_lexico);
                                 declaracion_subprogramas(ts_superior,nivel_lexico);
                                 break;
             case "procedure"  : this.preanalisis++;
+                                //Si tenemos una declaracion de subprogramas debemos generar una unica etiqueta para el programa
+                                //principal.
+                                if(this.etiqueta_principal.equalsIgnoreCase("")){
+                                    this.etiqueta_principal=this.generar_etiqueta();
+                                    this.mepa.add(new ParMepa("","DSVS "+this.etiqueta_principal));
+                                }
+                                
                                 procedimiento(ts_superior,null,nivel_lexico);
                                 declaracion_subprogramas(ts_superior,nivel_lexico);
                                 break;
@@ -938,6 +987,8 @@ public class GeneradorCodigo {
         Token token;
         String id="";
         String etiqueta=this.generar_etiqueta();
+        int nivel_lexico_local=nivel_lexico;
+        int lmem=0;
         
         //--- Codigo MEPA ---
         this.mepa.add(new ParMepa(etiqueta,"ENPR "+nivel_lexico));
@@ -981,8 +1032,11 @@ public class GeneradorCodigo {
         //Esta funcion tambien forma parte de las definiciones locales de la ts_superior.
         ts_superior.insertar(id, new Funcion(id,1,new TipoDato(tipo_retorno,1,"",""),parametro_formal));
         
+        this.cant_variables=0;
+        this.direccionamiento=0;
         definicion(ts_local);
-        
+        lmem=this.cant_variables;
+                
         //Construimos la cadena estatica.
         ts_local.set_ts_superior(ts_superior);
         ts_superior.set_ts_inferior(ts_local);
@@ -991,6 +1045,10 @@ public class GeneradorCodigo {
         declaracion_subprogramas(ts_local,nivel_lexico++);
         
         bloque(ts_local);
+        
+        //--- Codigo MEPA ---
+        this.mepa.add(new ParMepa("","LMEM "+lmem));
+        this.mepa.add(new ParMepa("","RTPR "+nivel_lexico_local+", "+parametro_formal.size()));
         
         match(";");
     }
@@ -1030,6 +1088,9 @@ public class GeneradorCodigo {
         Token token;
         String id="";
         String etiqueta=this.generar_etiqueta();
+        int lmem=0;
+        int cant_parametros=0;
+        int nivel_lexico_local=nivel_lexico;
         
         //--- Codigo MEPA ---
         this.mepa.add(new ParMepa(etiqueta,"ENPR "+nivel_lexico));
@@ -1061,7 +1122,8 @@ public class GeneradorCodigo {
             this.i=1;
             ArrayList<Parametro> parametro_formal=new ArrayList();
             param(parametro_formal);         
-
+            cant_parametros=parametro_formal.size();
+            
             match(")");
 
             match(";");
@@ -1075,7 +1137,9 @@ public class GeneradorCodigo {
         this.direccionamiento=0;
         //Segmento de definiciones de variables, constantes y tipos.
         definicion(ts_local);
-                
+        //Guardamos la cantidad total de variables para liberar el espacio asignado despues de la ejecucion del subprograma actual.
+        lmem=this.cant_variables;
+        
         //Construimos la cadena estatica.
         ts_local.set_ts_superior(ts_superior);
         ts_superior.set_ts_inferior(ts_local);
@@ -1083,8 +1147,14 @@ public class GeneradorCodigo {
         //Consideramos subprogramas anidados.
         declaracion_subprogramas(ts_local,nivel_lexico++);
         
+        //Dentro de cada bloque se lleva a cabo la traduccion a lenguaje MEPA de cada sentencia.
         bloque(ts_local);
         
+        //--- Codigo MEPA ---
+        this.mepa.add(new ParMepa("", "LMEM "+lmem));
+        this.mepa.add(new ParMepa("", "RTPR "+nivel_lexico_local+", "+cant_parametros));
+        
+        //Punto y coma que determina el fin del bloque begin-end del subprograma actual.
         match(";");
     }
     
@@ -1163,13 +1233,126 @@ public class GeneradorCodigo {
                         tk=token;
                         this.preanalisis++;
                         token=this.tokens_sintacticos.get(this.preanalisis);
+                        int n_lexico=100;
+                        
+                        simbolo=this.obtener_valor(ts, tk);
+                        n_lexico=this.nivel_lexico;
+                        //  Verificamos si el identificador se encuentra definido em la TS.
+                        if(simbolo == null){
+                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se encuentra definido *** Linea "+tk.get_linea_programa());
+                            System.exit(1);
+                        }
                         
                         ArrayList<Parametro> argumentos=new ArrayList();
                         
                         switch(token.get_lexema()){
-                            case "."  : //--- Acceso a registro, asignacion ---
+                            case "."  : //--- Acceso a registro, en el lado izq. de una asignacion ---
+                                        this.preanalisis++;
+                                        token=this.tokens_sintacticos.get(this.preanalisis);
+                                        
+                                        
+                                        //Verificamos si el nombre referenciado por tk se corresponde con un registro.
+                                        
+                                        if(identificador(token))
+                                            this.preanalisis++;
+                                        
+                                        //Verificamos si el nombre referenciado por token se corresponde con un campo del registro.
+                                        
+                                        match(":=");
+                                        
+                                        //argumento internamente llama a expresion(ts, exp.tipo, exp.cod) que genera el codigo MEPA correspondiente al lado derecho de la asignacion.
+                                        argumento(ts, argumentos);
+                                        
+                                        //--- Codigo MEPA ---
+                                        this.mepa.add(new ParMepa("","Debo APVL nivel_lexico, direcc_campo_registro ??"));
+                                        this.mepa.add(new ParMepa("","ALRE nivel_lexico, direcc_registro ??"));
+                                        
                                         break;
-                            case "["  : //--- Acceso a arreglo, asignacion ---
+                            case "["  : //--- Acceso a arreglo, en el lado izq. de una asignacion ---
+                                        String cod="cod";
+                                        String op="op";
+                                        int li=0;
+                                        //La idea de esta condicion es verificar si no estamos usando un nombre asociado a procedimiento, funcion o type como arreglo
+                                        //esto es: fun1[10]:=100;
+                                        if(!(simbolo instanceof Variable)){
+                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se corresponde con una definicion de ARREGLO *** Linea "+tk.get_linea_programa());
+                                            System.exit(1);
+                                        }
+                                        
+                                        Simbolo td=((Variable)simbolo).get_tipo_dato();
+                                                   
+                                        //Significa que estamos en presencia de un tipo definido por el usuario.
+                                        if(td instanceof TipoDato){
+                                            String id_a=((TipoDato)td).get_nombre_tipo();
+                                            td=this.obtener_valor(ts, new Token(id_a));
+                                        }
+
+                                        //   Verificamos si el identificador se encuentra definido como Arreglo.
+                                        if(!(td instanceof Arreglo)){
+                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" debe estar definido como ARREGLO *** Linea "+tk.get_linea_programa());
+                                            System.exit(1);
+                                        }
+                                
+                                        this.preanalisis++;
+                                        token=this.tokens_sintacticos.get(this.preanalisis);
+                                        
+                                        int indice=0;
+                                        if(digito(token)){
+                                            this.preanalisis++;
+                                            indice=Integer.parseInt(token.get_lexema());
+                                            cod="APCT "+indice;
+                                        }else
+                                            if(identificador(token)){
+                                                Simbolo s=this.obtener_valor(ts, token);
+
+                                                //--- Esquema de traduccion ---
+                                                if(s == null){
+                                                    System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
+                                                    System.exit(1);
+                                                }else{
+                                                    if(s instanceof Variable){
+                                                        TipoDato tipo_arreglo=(TipoDato) (((Variable)s).get_tipo_dato());
+                                                        if(!tipo_arreglo.get_nombre_tipo().equalsIgnoreCase("integer")){
+                                                            System.out.println("\nError Semantico : *** Tipos incompatibles, el identificador \""+token.get_lexema()+"\" debe ser de tipo integer *** Linea "+token.get_linea_programa());
+                                                            System.exit(1);
+                                                        }else{
+                                                            String dato=((Variable)s).get_dato();
+                                                            if(dato.equalsIgnoreCase("")){
+                                                                System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no ha sido inicializado *** Linea "+token.get_linea_programa());
+                                                                System.exit(1);
+                                                            }else{
+                                                                indice=Integer.parseInt(dato);
+                                                                Variable v=(Variable)s;
+                                                                cod="APVL "+this.nivel_lexico+", "+v.get_espacio_asignado();
+                                                            }
+                                                        }
+                                                    }else{
+                                                         System.out.println("\nError Semantico : *** El indice \""+token.get_lexema()+"\" del arreglo \""+tk.get_lexema()+"\" debe estar definido como una VARIABLE ENTERA *** Linea "+token.get_linea_programa());
+                                                         System.exit(1);
+                                                    }
+                                               }
+                                            }
+                                        
+                                        match("]");
+                                        match(":=");
+                                        
+                                        ((Arreglo)td).chequeo_de_tipos(tk, indice);
+                                        
+                                        //argumento internamente llama a expresion(ts, exp.tipo, exp.cod) que genera el codigo MEPA correspondiente al lado derecho de la asignacion.
+                                        argumento(ts, argumentos);
+                                        
+                                        //--- Codigo MEPA ---
+                                        li=((Arreglo)td).get_limite_inferior();
+                                        if(li<0)
+                                            op="SUST";
+                                        else
+                                            op="SUMA";
+                                        
+                                        this.mepa.add(new ParMepa("",cod));
+                                        this.mepa.add(new ParMepa("","APCT "+li));
+                                        this.mepa.add(new ParMepa("",op));
+                                        this.mepa.add(new ParMepa("","ALAR "+n_lexico+", "));
+                                        
                                         break;
                             case ":=" : //--- Asignacion ---
                                         this.preanalisis++;
@@ -1178,9 +1361,9 @@ public class GeneradorCodigo {
                                         argumento(ts, argumentos);
                                         
                                         //--- Esquema de traduccion ---
-                                        simbolo=this.obtener_valor(ts, tk);
-                                        if(simbolo != null){
-                                            if(simbolo instanceof Variable){//El lado izq. de una asignacion es una variable que puede ser un parametro formal.
+                                        //simbolo=this.obtener_valor(ts, tk);
+//                                        if(simbolo != null){
+                                            if(simbolo instanceof Variable){//El lado izq. de una asignacion es una variable que puede ser un parametro formal o pertenecer a otro ambiente.
                                                 TipoDato tipo_dato=(TipoDato)((Variable)simbolo).get_tipo_dato();
                                                 Variable var2=((Variable)simbolo);
                                                 tipo=((TipoDato)argumentos.get(0).get_tipo_dato()).get_nombre_tipo();
@@ -1193,20 +1376,11 @@ public class GeneradorCodigo {
                                                 }
                                                 
                                                 //--- Codigo MEPA ---
-                                                if(this.es_parametro_formal){
-                                                    Simbolo subprograma=ts.get(ts.get_propietario());
-                                                    int desplazamiento=-1;
-                                                    if(subprograma instanceof Procedimiento){
-                                                        desplazamiento=((Procedimiento)subprograma).calcular_desplazamiento(tk);
-                                                    }else{
-                                                        
-                                                    }
-                                                    this.mepa.add(new ParMepa("","ALVL "+ts.get_nivel_lexico()+", "+desplazamiento));
-                                                }else//Si la variable no es parametro formal, cambia su direccionamiento.
-                                                    this.mepa.add(new ParMepa("","ALVL "+ts.get_nivel_lexico()+", "+var2.get_espacio_asignado()));
+                                                //Si la variable no es parametro formal, cambia su direccionamiento. Debemos usar el valor que guardamos anteriormente.
+                                                this.mepa.add(new ParMepa("","ALVL "+this.nivel_lexico+", "+var2.get_espacio_asignado()));
                                                 
                                             }else{
-                                                if(simbolo instanceof TipoDato){
+                                                if(simbolo instanceof TipoDato){//Si devolvemos un obj. TipoDato es porque estamos en presencia de un parametro formal.
                                                     tipo=((TipoDato)argumentos.get(0).get_tipo_dato()).get_nombre_tipo();
                                                     String tipo_izq=((TipoDato)simbolo).get_nombre_tipo();
                                                     if(tipo.equalsIgnoreCase(tipo_izq))
@@ -1215,11 +1389,25 @@ public class GeneradorCodigo {
                                                         System.out.println("\nError Semantico : *** Tipos incompatibles, esta intentando asignar una expresion de tipo "+tipo+", en una variable de tipo "+tipo_izq+" *** Linea "+tk.get_linea_programa());
                                                         System.exit(1);
                                                     }
+                                                    
+                                                    //--- Codigo MEPA ---
+                                                    if(this.es_parametro_formal){
+                                                        Simbolo subprograma=ts.get(ts.get_propietario());
+                                                        int desplazamiento=-1;
+                                                        if(subprograma instanceof Procedimiento){
+                                                            desplazamiento=((Procedimiento)subprograma).calcular_desplazamiento(tk);
+                                                        }else{
+                                                            desplazamiento=((Funcion)subprograma).calcular_desplazamiento(tk);
+                                                        }
+                                                        this.mepa.add(new ParMepa("","ALVL "+this.nivel_lexico+", "+desplazamiento));
+                                                    }
                                                 }else
                                                     if(simbolo instanceof Constante){
                                                         System.out.println("\nError Semantico : *** No es posible modificar el contenido de una CONSTANTE en tiempo de ejecucion *** Linea "+token.get_linea_programa());
                                                         System.exit(1);
                                                     }else{
+                                                        //Significa que el lado izquierdo de la asignacion es el nombre de una funcion.
+                                                        //El nombre de esta funcion posee desplazamiento negativo.
                                                         if(simbolo instanceof Funcion){
                                                             if(ts.get_propietario().equalsIgnoreCase(tk.get_lexema())){
                                                                 tipo=((TipoDato)argumentos.get(0).get_tipo_dato()).get_nombre_tipo();
@@ -1235,6 +1423,10 @@ public class GeneradorCodigo {
                                                                 System.out.println("\nError Semantico : *** No es posible asignar un valor en la variable \""+tk.get_lexema()+"\" porque la misma se corresponde con una FUNCION y no estamos en el ambiente adecuado *** Linea "+tk.get_linea_programa());
                                                                 System.exit(1);
                                                             }
+                                                            
+                                                            //--- Codigo MEPA ---
+                                                            //Los parametros formales de un sumprograma se unifican durante el analisis semantico.
+                                                            this.mepa.add(new ParMepa("","ALVL "+this.nivel_lexico+", "+((Funcion)simbolo).calcular_desplazamiento_nombre_funcion()));
                                                                                                                         
                                                         }else{
                                                             if(simbolo instanceof Registro)
@@ -1251,22 +1443,22 @@ public class GeneradorCodigo {
                                                         }
                                                     }
                                             }
-                                        }else{
-                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se encuentra definido *** Linea "+tk.get_linea_programa());
-                                            System.exit(1);
-                                        }
+//                                        }else{
+//                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se encuentra definido *** Linea "+tk.get_linea_programa());
+//                                            System.exit(1);
+//                                        }
                                                                                                                                                                 
                                         break;
                             case "("  : //--- Llamada a Subprograma ---
                                         
                                         //--- En este punto debemos tener una llamada a un Procedimiento ---
-                                        simbolo=this.obtener_valor(ts, tk);
+                                        //simbolo=this.obtener_valor(ts, tk);
                                         //  Verificamos si el identificador se encuentra definido em la TS.
-                                        if(simbolo == null){
-                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se encuentra definido *** Linea "+tk.get_linea_programa());
-                                            System.exit(1);
-                                        }
-                                        //   Verificamos si el identificador se encuentra definido como Funcion o Procedimiento.     
+//                                        if(simbolo == null){
+//                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se encuentra definido *** Linea "+tk.get_linea_programa());
+//                                            System.exit(1);
+//                                        }
+                                        //   Verificamos si el identificador se encuentra definido como Procedimiento.     
                                         if(!((simbolo instanceof Procedimiento))){//(simbolo instanceof Funcion)
                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" debe estar definido como PROCEDIMIENTO *** Linea "+tk.get_linea_programa());
                                            System.exit(1);
@@ -1979,9 +2171,9 @@ public class GeneradorCodigo {
             }
             
             //--- Codigo MEPA ---
-            j_cod.set_string(k_cod.get_string() +"\n"+ "NEGA");
+            j_cod.set_string(k_cod.get_string() +"\n"+ "UMEN");
             this.mepa.add(new ParMepa("",k_cod.get_string()));
-            this.mepa.add(new ParMepa("","NEGA"));
+            this.mepa.add(new ParMepa("","UMEN"));
             
         }else{
             K(ts, k_tipo, k_cod);
@@ -2003,6 +2195,8 @@ public class GeneradorCodigo {
             case "*" :
             case "/" : this.preanalisis++;
                        J(ts, j_tipo, j_cod);System.out.println("\nEn I1, despues de J, j_tipo es : "+j_tipo.get_string());
+                       
+                       this.mepa.add(new ParMepa("",this.get_inst(token)));
                        
                        I1(ts, j_tipo, i1_tipo, j_cod, i1_cod);System.out.println("\nEn I1, despues de I1, j_tipo_bis es : "+j_tipo.get_string());
                        
@@ -2030,12 +2224,12 @@ public class GeneradorCodigo {
                        if(i1_cod.get_string().equalsIgnoreCase("void")){
                            i1_cod.set_string(j_cod.get_string() +"\n"+ this.get_inst(token));
                            //this.mepa.add(new ParMepa("",j_cod.get_string()));
-                           this.mepa.add(new ParMepa("",this.get_inst(token)));
+                           //this.mepa.add(new ParMepa("",this.get_inst(token)));
                        }else{
                            i1_cod.set_string(j_cod.get_string() +"\n"+ i1_cod.get_string());
                            //this.mepa.add(new ParMepa("",j_cod.get_string()));
                            //this.mepa.add(new ParMepa("",i1_cod.get_string()));
-                           this.mepa.add(new ParMepa("",this.get_inst(token))); //Tenemos un MULT-DIVI consecutivo en el archivo mepa.
+                           //this.mepa.add(new ParMepa("",this.get_inst(token))); //Tenemos un MULT-DIVI consecutivo en el archivo mepa.
                        }
                        
                        break;
@@ -2054,6 +2248,9 @@ public class GeneradorCodigo {
             case "+" :
             case "-" : this.preanalisis++;
                        I(ts, i_tipo, i_cod);System.out.println("\nEn H1, despues de I, i_tipo es : "+i_tipo.get_string());
+                       
+                       this.mepa.add(new ParMepa("",this.get_inst(token)));
+                       
                        H1(ts, i_tipo, h1_tipo, i_cod, h1_cod);System.out.println("\nEn H1, despues de H1, i_tipo es : "+i_tipo.get_string());
                        
                        //--- Esquema de traduccion ---
@@ -2070,12 +2267,12 @@ public class GeneradorCodigo {
                        if(h1_cod.get_string().equalsIgnoreCase("void")){
                            h1_cod.set_string(i_cod.get_string() +"\n"+ this.get_inst(token));
                            //this.mepa.add(new ParMepa("",i_cod.get_string()));
-                           this.mepa.add(new ParMepa("",this.get_inst(token)));
+                           //this.mepa.add(new ParMepa("",this.get_inst(token)));
                        }else{
                            h1_cod.set_string(i_cod.get_string() +"\n"+ h1_cod.get_string() + "\n" + this.get_inst(token));
                            //this.mepa.add(new ParMepa("",i_cod.get_string()));
                            //this.mepa.add(new ParMepa("",h1_cod.get_string()));
-                           this.mepa.add(new ParMepa("",this.get_inst(token)));
+                           //this.mepa.add(new ParMepa("",this.get_inst(token)));
                        }
                        break;
             default : //; //Presencia de cadena nula.
@@ -2098,7 +2295,9 @@ public class GeneradorCodigo {
             case "="  :
             case "<>" : this.preanalisis++;
                         H(ts, h_tipo, h_cod);System.out.println("\nEn G1, despues de H, h_tipo es : "+h_tipo.get_string());
-                        //Debemos usr un h_tipo_bis???.
+                        
+                        this.mepa.add(new ParMepa("",this.get_inst(token)));
+                        
                         G1(ts, h_tipo, g1_tipo, h_cod, g1_cod);System.out.println("\nEn G1, despues de G1, h_tipo es : "+h_tipo.get_string());
                         
                         //--- Esquema de traduccion ---
@@ -2116,12 +2315,12 @@ public class GeneradorCodigo {
                         if(g1_cod.get_string().equalsIgnoreCase("void")){
                             g1_cod.set_string(h_cod.get_string() +"\n"+ this.get_inst(token));
                             //this.mepa.add(new ParMepa("",h_cod.get_string()));
-                            this.mepa.add(new ParMepa("",this.get_inst(token)));
+                            //this.mepa.add(new ParMepa("",this.get_inst(token)));
                         }else{
                             g1_cod.set_string(h_cod.get_string() +"\n"+ g1_cod.get_string() + "\n" + this.get_inst(token));
                             //this.mepa.add(new ParMepa("",h_cod.get_string()));
                             //this.mepa.add(new ParMepa("",g1_cod.get_string()));
-                            this.mepa.add(new ParMepa("",this.get_inst(token)));
+                            //this.mepa.add(new ParMepa("",this.get_inst(token)));
                         }
                         break;
             default : //; //Presencia de cadena nula.
@@ -2140,6 +2339,9 @@ public class GeneradorCodigo {
         if(token.get_lexema().equalsIgnoreCase("and")){
             this.preanalisis++;
             F(ts, f_tipo, f_cod);System.out.println("\nEn T1, despues de F, f_tipo es : "+f_tipo.get_string());
+            
+            this.mepa.add(new ParMepa("","CONJ"));
+            
             T1(ts, f_tipo, t1_tipo, f_cod, t1_cod);System.out.println("\nEn T1, despues de T1, f_tipo es : "+f_tipo.get_string());
             
             //--- Esquema de traduccion ---
@@ -2156,12 +2358,12 @@ public class GeneradorCodigo {
             if(t1_cod.get_string().equalsIgnoreCase("void")){
                 t1_cod.set_string(f_cod.get_string() + "\n" + "CONJ");
                 //this.mepa.add(new ParMepa("",f_cod.get_string()));
-                this.mepa.add(new ParMepa("","CONJ"));
+                //this.mepa.add(new ParMepa("","CONJ"));
             }else{
                 t1_cod.set_string(f_cod.get_string() + "\n" + t1_cod.get_string() + "\n" + this.get_inst(token));
                 //this.mepa.add(new ParMepa("",f_cod.get_string()));
                 //this.mepa.add(new ParMepa("",t1_cod.get_string()));
-                this.mepa.add(new ParMepa("",this.get_inst(token)));
+                //this.mepa.add(new ParMepa("",this.get_inst(token)));
             }
             
         }else{//; //Presencia de cadena nula.
@@ -2179,6 +2381,9 @@ public class GeneradorCodigo {
         if(token.get_lexema().equalsIgnoreCase("or")){
             this.preanalisis++;
             T(ts, t_tipo, t_cod);
+            
+            this.mepa.add(new ParMepa("","DISJ"));
+            
             E1(ts, e1_tipo, e1_cod);
             
             //--- Esquema de traduccion ---
@@ -2195,12 +2400,12 @@ public class GeneradorCodigo {
             if(e1_cod.get_string().equalsIgnoreCase("void")){
                 e1_cod.set_string(t_cod.get_string() + "\n" + "DISJ");
                 //this.mepa.add(new ParMepa("",t_cod.get_string()));
-                this.mepa.add(new ParMepa("","DISJ"));
+                //this.mepa.add(new ParMepa("","DISJ"));
             }else{
                 e1_cod.set_string(t_cod.get_string() + "\n" + e1_cod.get_string() + "\n" + "DISJ");
                 //this.mepa.add(new ParMepa("",t_cod.get_string()));
                 //this.mepa.add(new ParMepa("",e1_cod.get_string()));
-                this.mepa.add(new ParMepa("","DISJ"));
+                //this.mepa.add(new ParMepa("","DISJ"));
             }
             
         }else{
@@ -2283,13 +2488,23 @@ public class GeneradorCodigo {
 
                                     switch(token.get_lexema()){
                                         //--- Llamada a Subprograma ---
-                                        case "("   : //   Verificamos si el identificador se encuentra definido como Funcion o Procedimiento.     
-                                                     if(!((simbolo instanceof Funcion) || (simbolo instanceof Procedimiento))){
-                                                        System.out.println("\nError Semantico : *** El identificador \""+id.get_lexema()+"\" debe estar definido como FUNCION o PROCEDIMIENTO *** Linea "+id.get_linea_programa());
+                                        case "("   : //Si se cumple esta condicion significa que estamos usando un procedimiento en una expresion relacional, aritmetica o logica.
+                                                     if((simbolo instanceof Procedimiento)){
+                                                        System.out.println("\nError Semantico : *** No se puede utilizar un Procedimiento como operando en una expresion aritmetica, relacional o booleana *** linea "+id.get_linea_programa());
                                                         System.exit(1);
                                                      }
-
-                                                     //   Estructura para guardar el tipo de los argumentos.
+                                                     
+                                                     //Verificamos si el identificador se encuentra definido como Funcion.     
+                                                     if(!((simbolo instanceof Funcion))){
+                                                        System.out.println("\nError Semantico : *** El identificador \""+id.get_lexema()+"\" debe estar definido como FUNCION *** Linea "+id.get_linea_programa());
+                                                        System.exit(1);
+                                                     }
+                                                     
+                                                     //Reservamos memoria para el valor de retorno de la funcion.
+                                                     this.mepa.add(new ParMepa("","RMEM 1"));
+                                                     
+                                                     //Estructura para guardar el tipo de los argumentos. Internamente ejecuta expresion(ts,exp_cod)
+                                                     //que a su vez genera codigo MEPA.
                                                      ArrayList<Parametro> argumentos=new ArrayList();
                                                      this.preanalisis++;
                                                      args(ts, argumentos);
@@ -2297,17 +2512,16 @@ public class GeneradorCodigo {
                                                      //   Verificamos cantidad y tipos de parametros para una Funcion o Procedimiento.
                                                      if(simbolo instanceof Funcion)
                                                          k_tipo.set_string(((Funcion) simbolo).chequeo_de_tipos(id, argumentos));
-                                                     else
-                                                         k_tipo.set_string(((Procedimiento) simbolo).chequeo_de_tipos(id, argumentos));
+                                                     //else
+                                                         //k_tipo.set_string(((Procedimiento) simbolo).chequeo_de_tipos(id, argumentos));
 
                                                      match(")");
 
                                                      token=this.tokens_sintacticos.get(this.preanalisis);
-                                                     //   Verificamos si un procedimiento no esta incluido en una expresion.
-                                                     if(!token.get_lexema().equalsIgnoreCase(";") && (simbolo instanceof Procedimiento)){
-                                                         System.out.println("\nError Semantico : *** No se puede utilizar un Procedimiento como operando en una expresion aritmetica, relacional o booleana *** linea "+id.get_linea_programa());
-                                                         System.exit(1);
-                                                     }
+                                                     //Verificamos si un procedimiento no esta incluido en una expresion.
+                                                     //if(!token.get_lexema().equalsIgnoreCase(";") && (simbolo instanceof Procedimiento)){
+                                                         
+                                                     //}
                                                      break;
                                         case "." : //--- Acceso a registro ---
                                                    Simbolo td_r=((Variable)simbolo).get_tipo_dato();
@@ -2333,6 +2547,13 @@ public class GeneradorCodigo {
 
                                                    break;
                                         case "[" : //--- Acceso a arreglo ---
+                                                   //La idea de esta condicion es verificar si no estamos usando un nombre asociado a procedimiento, funcion o type como arreglo
+                                                   //esto es: fun1[10]:=100;
+                                                   if(!(simbolo instanceof Variable)){
+                                                       System.out.println("\nError Semantico : *** El identificador \""+id.get_lexema()+"\" no se corresponde con una definicion de ARREGLO *** Linea "+id.get_linea_programa());
+                                                       System.exit(1);
+                                                   }
+                                            
                                                    Simbolo td=((Variable)simbolo).get_tipo_dato();
                                                    
                                                    //Significa que estamos en presencia de un tipo definido por el usuario.
@@ -2396,28 +2617,29 @@ public class GeneradorCodigo {
                                                       TipoDato tipo=(TipoDato)((Variable)simbolo).get_tipo_dato();
                                                       Variable var=((Variable)simbolo);
                                                       k_tipo.set_string(tipo.get_nombre_tipo());
-                                                                                                                                                                  
-                                                      if(this.es_parametro_formal){
-                                                          //Busco el subprograma correspondiente en la cadena estatica.
-                                                          Simbolo subprograma=this.obtener_valor(ts, new Token(ts.get_propietario()));
-                                                          int desplazamiento=-1;
-                                                          if(subprograma instanceof Procedimiento){
-                                                              desplazamiento=((Procedimiento)subprograma).calcular_desplazamiento(id);
-                                                          }else{
-                                                              //desplazamiento=((Funcion)subprograma).calcular_desplazamineto(id);
-                                                          }
-                                                          System.out.println("\nEste es el valor de desplazamiento : "+desplazamiento);
-                                                          k_cod.set_string("APVL "+this.nivel_lexico+", "+desplazamiento+" --> variable: "+id.get_lexema());
-                                                      }else{//Si no es parametro formal, es una variable que pertenece a las definiciones locales o bien a otro subprograma en calidad de variable local o parametro formal.
-                                                          k_cod.set_string("APVL "+this.nivel_lexico+", "+var.get_espacio_asignado()+" --> variable: "+id.get_lexema());
-                                                      }
+                                                      k_cod.set_string("APVL "+this.nivel_lexico+", "+var.get_espacio_asignado()+" --> variable: "+id.get_lexema());                                                                                                            
+                                                      //Si no es parametro formal, es una variable que pertenece a las definiciones locales o bien a otro subprograma en calidad de variable local o parametro formal.
+                                                          
+                                                      
                                                   }else{
                                                       if(simbolo instanceof Constante){
                                                           k_tipo.set_string(((Constante)simbolo).get_tipo());
                                                       }else{
-                                                          //Significa que se hace referencia a un parametro formal.
+                                                          //Significa que se hace referencia a un parametro formal. En este caso obtener_parametro_formal devuelve un objeto TipoDato.
                                                           if(simbolo instanceof TipoDato){
                                                               k_tipo.set_string(((TipoDato)simbolo).get_nombre_tipo());
+                                                              if(this.es_parametro_formal){
+                                                                  //Busco el subprograma correspondiente en la cadena estatica.
+                                                                  Simbolo subprograma=this.obtener_valor(ts, new Token(ts.get_propietario()));
+                                                                  int desplazamiento=-1;
+                                                                  if(subprograma instanceof Procedimiento){
+                                                                      desplazamiento=((Procedimiento)subprograma).calcular_desplazamiento(id);
+                                                                  }else{
+                                                                      desplazamiento=((Funcion)subprograma).calcular_desplazamiento(id);
+                                                                  }
+                                                                  System.out.println("\nEste es el valor de desplazamiento : "+desplazamiento);
+                                                                  k_cod.set_string("APVL "+this.nivel_lexico+", "+desplazamiento+" --> variable: "+id.get_lexema());
+                                                              }
                                                           }else
                                                               if(simbolo instanceof Procedimiento){                                                       
                                                                   System.out.println("\nError Semantico : *** No se puede utilizar un Procedimiento como operando en una expresion aritmetica, relacional o booleana *** linea "+id.get_linea_programa());
