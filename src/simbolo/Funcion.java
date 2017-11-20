@@ -29,11 +29,12 @@ public class Funcion extends Simbolo {
         this.lista_parametros=new ArrayList();
     }
     
-    public Funcion (String lexema, int espacio_asignado, Simbolo tipo_retorno, ArrayList<Parametro> params){
+    public Funcion (String lexema, int espacio_asignado, Simbolo tipo_retorno, ArrayList<Parametro> params, String etiqueta){
         super(lexema,espacio_asignado);
         this.pasaje_parametro="valor";
         this.tipo_retorno=tipo_retorno;
         this.lista_parametros=params;
+        this.etiqueta=etiqueta;
     }
     
     //-----------------------------------------------------------------------------------

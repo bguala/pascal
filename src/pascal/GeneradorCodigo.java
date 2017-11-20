@@ -431,7 +431,8 @@ public class GeneradorCodigo {
                              insertar_tipos(ts,ids,a);
                              break;
             case "record"  : this.preanalisis++;
-                             reg(ts,ids);                             
+                             reg(ts,ids);   
+                             //Aca debemos agregar la sentencia MEPA para reservar memoria.
                              break;
             default : //--- Subrango ---
                       //No avanzamos preanalisis porque debemos verificar que el token actual sea digito.
@@ -566,10 +567,13 @@ public class GeneradorCodigo {
         if(li==0 && ls>0)
             cantidad=ls+1;
         
+        //El calculo de cantidad de eltos es correcto, se reserva mas memoria porque en secuencia_ids se incrementa en 1
+        //cant_variables por el identificador del arreglo.
+        System.out.println("\nEsta es la cantidad de eltos del arreglo : "+cantidad);
         //Guardamos la cantidad de eltos del arreglo.
-        this.cant_variables += cantidad;
+        //this.cant_variables += cantidad;
         //Configuramos el nuevo direccionamiento a partir de la longitud del arreglo.
-        this.direccionamiento += cantidad-1;
+        //this.direccionamiento += cantidad-1;
         
         a.set_cantidad_elementos(cantidad);
         
@@ -732,12 +736,24 @@ public class GeneradorCodigo {
         int n=ids.size();
         String lex="";
         Variable var=null;
+        Simbolo tipo_dato=null;
         for(i=0; i<n; i++){
             lex=ids.get(i);
             //Guardamos el direccionamiento en la TS para recuperarlo en las hojas del arbol de derivacion.
             if(s instanceof Variable){
-                var=new Variable(this.direccionamiento, ((Variable)s).get_tipo_dato());
-                this.direccionamiento++;
+                tipo_dato=((Variable)s).get_tipo_dato();
+                var=new Variable(this.direccionamiento, tipo_dato);
+                System.out.println("\nDireccionamiento "+lex+" --> "+this.direccionamiento);
+                if(tipo_dato instanceof Arreglo){
+                    this.direccionamiento += ((Arreglo)tipo_dato).get_cantidad_elementos();
+                    
+                }
+                if(tipo_dato instanceof Registro){
+                    //Hay que implementar el metodo para saber la longitud de un registro
+                }
+                if(tipo_dato instanceof TipoDato)
+                    this.direccionamiento++;
+                
                 ts.insertar(lex, var);//s
             }else
                 ts.insertar(lex, s);
@@ -885,6 +901,10 @@ public class GeneradorCodigo {
                              completar_arreglo(a);
                              //Pueden haber definiciones recursivas de arreglos.
                              agregar_tipo(a);
+                             //Agregamos una instruccion MEPA para reservar memoria exclusiva para el/los arreglo/s.
+                             this.mepa.add(new ParMepa("","RMEM "+(a.get_cantidad_elementos()*ids.size())));
+                             //Restamos la cantidad de variables definidas, pues se corresponden con arreglos.
+                             this.cant_variables -= ids.size();
                              //Guardamos los nuevos tipos en la ts.
                              insertar_tipos(ts,ids,new Variable(a));
                              break;
@@ -1027,10 +1047,10 @@ public class GeneradorCodigo {
                 
         match(";");
         
-        ts_local.insertar(id, new Funcion(id,1,new TipoDato(tipo_retorno,1,"",""),parametro_formal));
+        ts_local.insertar(id, new Funcion(id,1,new TipoDato(tipo_retorno,1,"",""),parametro_formal, etiqueta));
         
         //Esta funcion tambien forma parte de las definiciones locales de la ts_superior.
-        ts_superior.insertar(id, new Funcion(id,1,new TipoDato(tipo_retorno,1,"",""),parametro_formal));
+        ts_superior.insertar(id, new Funcion(id,1,new TipoDato(tipo_retorno,1,"",""),parametro_formal,etiqueta));
         
         this.cant_variables=0;
         this.direccionamiento=0;
@@ -1351,7 +1371,7 @@ public class GeneradorCodigo {
                                         this.mepa.add(new ParMepa("",cod));
                                         this.mepa.add(new ParMepa("","APCT "+li));
                                         this.mepa.add(new ParMepa("",op));
-                                        this.mepa.add(new ParMepa("","ALAR "+n_lexico+", "));
+                                        this.mepa.add(new ParMepa("","ALAR "+n_lexico+", "+((Variable)simbolo).get_espacio_asignado()));
                                         
                                         break;
                             case ":=" : //--- Asignacion ---
@@ -1377,7 +1397,7 @@ public class GeneradorCodigo {
                                                 
                                                 //--- Codigo MEPA ---
                                                 //Si la variable no es parametro formal, cambia su direccionamiento. Debemos usar el valor que guardamos anteriormente.
-                                                this.mepa.add(new ParMepa("","ALVL "+this.nivel_lexico+", "+var2.get_espacio_asignado()));
+                                                this.mepa.add(new ParMepa("","ALVL "+n_lexico+", "+var2.get_espacio_asignado()));
                                                 
                                             }else{
                                                 if(simbolo instanceof TipoDato){//Si devolvemos un obj. TipoDato es porque estamos en presencia de un parametro formal.
@@ -1399,7 +1419,7 @@ public class GeneradorCodigo {
                                                         }else{
                                                             desplazamiento=((Funcion)subprograma).calcular_desplazamiento(tk);
                                                         }
-                                                        this.mepa.add(new ParMepa("","ALVL "+this.nivel_lexico+", "+desplazamiento));
+                                                        this.mepa.add(new ParMepa("","ALVL "+n_lexico+", "+desplazamiento));
                                                     }
                                                 }else
                                                     if(simbolo instanceof Constante){
@@ -1426,7 +1446,7 @@ public class GeneradorCodigo {
                                                             
                                                             //--- Codigo MEPA ---
                                                             //Los parametros formales de un sumprograma se unifican durante el analisis semantico.
-                                                            this.mepa.add(new ParMepa("","ALVL "+this.nivel_lexico+", "+((Funcion)simbolo).calcular_desplazamiento_nombre_funcion()));
+                                                            this.mepa.add(new ParMepa("","ALVL "+n_lexico+", "+((Funcion)simbolo).calcular_desplazamiento_nombre_funcion()));
                                                                                                                         
                                                         }else{
                                                             if(simbolo instanceof Registro)
@@ -2448,6 +2468,7 @@ public class GeneradorCodigo {
                     case "false"   :
                     case "true"    : this.preanalisis++;
                                      k_tipo.set_string("boolean");
+                                     k_cod.set_string(this.get_inst(token));
                                      break;
                                      
                     case "maxint"  : this.preanalisis++;
@@ -2522,6 +2543,10 @@ public class GeneradorCodigo {
                                                      //if(!token.get_lexema().equalsIgnoreCase(";") && (simbolo instanceof Procedimiento)){
                                                          
                                                      //}
+                                                     //--- Codigo MEPA ---
+                                                     Simbolo funcion=this.obtener_valor(ts, id);
+                                                     if(funcion instanceof Funcion)
+                                                         this.mepa.add(new ParMepa("","LLPR "+((Funcion)funcion).get_etiqueta()));
                                                      break;
                                         case "." : //--- Acceso a registro ---
                                                    Simbolo td_r=((Variable)simbolo).get_tipo_dato();
@@ -2549,6 +2574,7 @@ public class GeneradorCodigo {
                                         case "[" : //--- Acceso a arreglo ---
                                                    //La idea de esta condicion es verificar si no estamos usando un nombre asociado a procedimiento, funcion o type como arreglo
                                                    //esto es: fun1[10]:=100;
+                                                   int n_lexico=this.nivel_lexico;
                                                    if(!(simbolo instanceof Variable)){
                                                        System.out.println("\nError Semantico : *** El identificador \""+id.get_lexema()+"\" no se corresponde con una definicion de ARREGLO *** Linea "+id.get_linea_programa());
                                                        System.exit(1);
@@ -2610,14 +2636,26 @@ public class GeneradorCodigo {
                                                    match("]");
 
                                                    k_tipo.set_string(((Arreglo)td).chequeo_de_tipos(id, indice));
-
+                                                   
+                                                   int li=((Arreglo)td).get_limite_inferior();
+                                                   String op="OP";
+                                                   if(li < 0)
+                                                       op="SUST";
+                                                   else
+                                                       op="SUMA";
+                                                   
+                                                   this.mepa.add(new ParMepa("","APCT "+indice));
+                                                   this.mepa.add(new ParMepa("", "APCT "+li));
+                                                   this.mepa.add(new ParMepa("",op));
+                                                   this.mepa.add(new ParMepa("","APAR "+n_lexico+", "+((Variable)simbolo).get_espacio_asignado()));
+                                                   
                                                    break;
                                         default : //; //Solamente tenemos un identificador.
                                                   if(simbolo instanceof Variable){
                                                       TipoDato tipo=(TipoDato)((Variable)simbolo).get_tipo_dato();
                                                       Variable var=((Variable)simbolo);
                                                       k_tipo.set_string(tipo.get_nombre_tipo());
-                                                      k_cod.set_string("APVL "+this.nivel_lexico+", "+var.get_espacio_asignado()+" --> variable: "+id.get_lexema());                                                                                                            
+                                                      k_cod.set_string("APVL "+this.nivel_lexico+", "+var.get_espacio_asignado());                                                                                                            
                                                       //Si no es parametro formal, es una variable que pertenece a las definiciones locales o bien a otro subprograma en calidad de variable local o parametro formal.
                                                           
                                                       
@@ -2638,7 +2676,7 @@ public class GeneradorCodigo {
                                                                       desplazamiento=((Funcion)subprograma).calcular_desplazamiento(id);
                                                                   }
                                                                   System.out.println("\nEste es el valor de desplazamiento : "+desplazamiento);
-                                                                  k_cod.set_string("APVL "+this.nivel_lexico+", "+desplazamiento+" --> variable: "+id.get_lexema());
+                                                                  k_cod.set_string("APVL "+this.nivel_lexico+", "+desplazamiento);
                                                               }
                                                           }else
                                                               if(simbolo instanceof Procedimiento){                                                       
@@ -2701,6 +2739,8 @@ public class GeneradorCodigo {
             case "not"   : inst="NEGA"; break;
             case "and"   : inst="CONJ"; break;
             case "or"    : inst="DISJ"; break;
+            case "false" : inst="APCT 0";break;
+            case "true"  : inst="APCT 1";
         }
         
         return inst;

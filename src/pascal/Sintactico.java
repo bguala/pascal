@@ -874,7 +874,7 @@ public class Sintactico {
                 
         match(";");
         
-        ts_local.insertar(id, new Funcion(id,1,new TipoDato(tipo_retorno,1,"",""),parametro_formal));
+        ts_local.insertar(id, new Funcion(id,1,new TipoDato(tipo_retorno,1,"",""),parametro_formal,""));
         
         definicion(ts_local);
         

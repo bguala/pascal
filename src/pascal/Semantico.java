@@ -885,10 +885,10 @@ public class Semantico {
                 
         match(";");
         
-        ts_local.insertar(id, new Funcion(id,1,new TipoDato(tipo_retorno,1,"",""),parametro_formal));
+        ts_local.insertar(id, new Funcion(id,1,new TipoDato(tipo_retorno,1,"",""),parametro_formal,""));
         
         //Esta funcion tambien forma parte de las definiciones locales de la ts_superior.
-        ts_superior.insertar(id, new Funcion(id,1,new TipoDato(tipo_retorno,1,"",""),parametro_formal));
+        ts_superior.insertar(id, new Funcion(id,1,new TipoDato(tipo_retorno,1,"",""),parametro_formal,""));
         
         definicion(ts_local);
         
