@@ -1068,6 +1068,52 @@ public class Semantico {
                             case "."  : //--- Acceso a registro, asignacion ---
                                         break;
                             case "["  : //--- Acceso a arreglo, asignacion ---
+                                        if(!(simbolo instanceof Variable)){
+                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se corresponde con una definicion de ARREGLO *** Linea "+tk.get_linea_programa());
+                                            System.exit(1);
+                                        }
+                                        
+                                        Simbolo td=((Variable)simbolo).get_tipo_dato();
+                                                   
+                                        //Significa que estamos en presencia de un tipo definido por el usuario.
+                                        if(td instanceof TipoDato){
+                                            String id_a=((TipoDato)td).get_nombre_tipo();
+                                            td=this.obtener_valor(ts, new Token(id_a));
+                                        }
+
+                                        //   Verificamos si el identificador se encuentra definido como Arreglo.
+                                        if(!(td instanceof Arreglo)){
+                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" debe estar definido como ARREGLO *** Linea "+tk.get_linea_programa());
+                                            System.exit(1);
+                                        }
+                                
+                                        this.preanalisis++;
+                                        
+                                        Strings tipo_syn=new Strings("");
+                                        expresion(ts, tipo_syn);
+
+                                        if(!(tipo_syn.get_string().equalsIgnoreCase("integer"))){
+                                            System.out.println("\nError Semantico : *** Tipos incompatibles, el indice de un arreglo debe ser una variable o expresion de tipo integer *** Linea "+tk.get_linea_programa());
+                                            System.exit(1);
+                                        }
+                                        
+                                        match("]");
+                                        match(":=");
+                                        
+                                        String tipo_dato_arreglo=((Arreglo)td).chequeo_de_tipos(tk);
+                                        
+                                        //argumento internamente llama a expresion(ts, exp.tipo, exp.cod) que genera el codigo MEPA correspondiente al lado derecho de la asignacion.
+                                        argumento(ts, argumentos);
+                                        
+                                        tipo=((TipoDato)argumentos.get(0).get_tipo_dato()).get_nombre_tipo();
+                                                
+                                        if(tipo_dato_arreglo.equalsIgnoreCase(tipo)){
+                                            sentencia_tipo.set_string(tipo);
+                                        }else{
+                                            System.out.println("\nError Semantico : *** Tipos incompatibles, esta intentando asignar una expresion de tipo "+tipo+", en una variable de tipo "+tipo_dato_arreglo+" *** Linea "+tk.get_linea_programa());
+                                            System.exit(1);
+                                        }
+                                        
                                         break;
                             case ":=" : //--- Asignacion ---
                                         this.preanalisis++;
@@ -1983,47 +2029,55 @@ public class Semantico {
                                                    }
 
                                                    this.preanalisis++;
-                                                   token=this.tokens_sintacticos.get(this.preanalisis);
+//                                                   token=this.tokens_sintacticos.get(this.preanalisis);
+//
+//                                                   int indice=0;
+//                                                   if(digito(token)){
+//                                                       this.preanalisis++;
+//                                                       indice=Integer.parseInt(token.get_lexema());
+//                                                   }else{
+//                                                       if(identificador(token)){
+//                                                           this.preanalisis++;
+//
+//                                                           Simbolo s=this.obtener_valor(ts, token);
+//
+//                                                           //--- Esquema de traduccion ---
+//                                                           if(s == null){
+//                                                               System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
+//                                                               System.exit(1);
+//                                                           }else{
+//                                                               if(s instanceof Variable){
+//                                                                   TipoDato tipo=(TipoDato) (((Variable)s).get_tipo_dato());
+//                                                                   if(!tipo.get_nombre_tipo().equalsIgnoreCase("integer")){
+//                                                                       System.out.println("\nError Semantico : *** Tipos incompatibles, el identificador \""+token.get_lexema()+"\" debe ser de tipo integer *** Linea "+token.get_linea_programa());
+//                                                                       System.exit(1);
+//                                                                   }else{
+//                                                                       String dato=((Variable)s).get_dato();
+//                                                                       if(dato.equalsIgnoreCase("")){
+//                                                                           System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no ha sido inicializado *** Linea "+token.get_linea_programa());
+//                                                                           System.exit(1);
+//                                                                       }else
+//                                                                           indice=Integer.parseInt(dato);
+//                                                                   }
+//                                                               }else{
+//                                                                    System.out.println("\nError Semantico : *** El indice \""+token.get_lexema()+"\" del arreglo \""+id.get_lexema()+"\" debe estar definido como una VARIABLE ENTERA *** Linea "+token.get_linea_programa());
+//                                                                    System.exit(1);
+//                                                               }
+//                                                           }
+//                                                       }
+//                                                   }
 
-                                                   int indice=0;
-                                                   if(digito(token)){
-                                                       this.preanalisis++;
-                                                       indice=Integer.parseInt(token.get_lexema());
-                                                   }else{
-                                                       if(identificador(token)){
-                                                           this.preanalisis++;
-
-                                                           Simbolo s=this.obtener_valor(ts, token);
-
-                                                           //--- Esquema de traduccion ---
-                                                           if(s == null){
-                                                               System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
-                                                               System.exit(1);
-                                                           }else{
-                                                               if(s instanceof Variable){
-                                                                   TipoDato tipo=(TipoDato) (((Variable)s).get_tipo_dato());
-                                                                   if(!tipo.get_nombre_tipo().equalsIgnoreCase("integer")){
-                                                                       System.out.println("\nError Semantico : *** Tipos incompatibles, el identificador \""+token.get_lexema()+"\" debe ser de tipo integer *** Linea "+token.get_linea_programa());
-                                                                       System.exit(1);
-                                                                   }else{
-                                                                       String dato=((Variable)s).get_dato();
-                                                                       if(dato.equalsIgnoreCase("")){
-                                                                           System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no ha sido inicializado *** Linea "+token.get_linea_programa());
-                                                                           System.exit(1);
-                                                                       }else
-                                                                           indice=Integer.parseInt(dato);
-                                                                   }
-                                                               }else{
-                                                                    System.out.println("\nError Semantico : *** El indice \""+token.get_lexema()+"\" del arreglo \""+id.get_lexema()+"\" debe estar definido como una VARIABLE ENTERA *** Linea "+token.get_linea_programa());
-                                                                    System.exit(1);
-                                                               }
-                                                           }
-                                                       }
+                                                   Strings tipo_syn=new Strings("");
+                                                   expresion(ts, tipo_syn);
+                                                   
+                                                   if(!(tipo_syn.get_string().equalsIgnoreCase("integer"))){
+                                                       System.out.println("\nError Semantico : *** Tipos incompatibles, el indice de un arreglo debe ser una variable o expresion de tipo integer *** Linea "+id.get_linea_programa());
+                                                       System.exit(1);
                                                    }
-
+                                                   
                                                    match("]");
 
-                                                   k_tipo.set_string(((Arreglo)td).chequeo_de_tipos(id, indice));
+                                                   k_tipo.set_string(((Arreglo)td).chequeo_de_tipos(id));
 
                                                    break;
                                         default : //; //Solamente tenemos un identificador.

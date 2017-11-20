@@ -35,6 +35,7 @@ public class GeneradorCodigo {
     private boolean es_parametro_formal;//Ayuda a determinar si una varibale es un parametro formal.
     private int nivel_lexico;//Guardamos el nivel lexico de un identificador. Es util cuando nos desplazamos por la cadena estatica.
     private String etiqueta_principal;//Guardamos una etiqueta si existen declaraciones de subprogramas anidadas en el programa principal.
+    private int cant_mem_estructurado;//Cantidad de memoria para datos estructurados.
     
     //-----------------------------------------------------------------------------------
     //--- Constructor -------------------------------------------------------------------
@@ -56,6 +57,7 @@ public class GeneradorCodigo {
         this.es_parametro_formal=false;
         this.nivel_lexico=0;
         this.etiqueta_principal="";
+        this.cant_mem_estructurado=0;
         
         //Agregamos nuevas palabras reservadas.
         this.palabras_reservadas.add("and");
@@ -208,7 +210,7 @@ public class GeneradorCodigo {
         definicion(this.tabla_simbolos);
         
         //cant_variables se resetea en cada llamada a declaracion_subprogramas(ts,nivel_lexico).
-        lmem=this.cant_variables;
+        lmem=this.cant_variables + this.cant_mem_estructurado;
         //this.codigo_mepa += "\nRMEM "+this.cant_variables+"\n";
         
         declaracion_subprogramas(this.tabla_simbolos,nivel_lexico);
@@ -903,6 +905,7 @@ public class GeneradorCodigo {
                              agregar_tipo(a);
                              //Agregamos una instruccion MEPA para reservar memoria exclusiva para el/los arreglo/s.
                              this.mepa.add(new ParMepa("","RMEM "+(a.get_cantidad_elementos()*ids.size())));
+                             this.cant_mem_estructurado += a.get_cantidad_elementos()*ids.size();
                              //Restamos la cantidad de variables definidas, pues se corresponden con arreglos.
                              this.cant_variables -= ids.size();
                              //Guardamos los nuevos tipos en la ts.
@@ -1314,52 +1317,77 @@ public class GeneradorCodigo {
                                         }
                                 
                                         this.preanalisis++;
-                                        token=this.tokens_sintacticos.get(this.preanalisis);
+//                                        token=this.tokens_sintacticos.get(this.preanalisis);
+//                                        
+//                                        int indice=0;
+//                                        if(digito(token)){
+//                                            this.preanalisis++;
+//                                            indice=Integer.parseInt(token.get_lexema());
+//                                            cod="APCT "+indice;
+//                                        }else
+//                                            if(identificador(token)){
+//                                                Simbolo s=this.obtener_valor(ts, token);
+//
+//                                                //--- Esquema de traduccion ---
+//                                                if(s == null){
+//                                                    System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
+//                                                    System.exit(1);
+//                                                }else{
+//                                                    if(s instanceof Variable){
+//                                                        TipoDato tipo_arreglo=(TipoDato) (((Variable)s).get_tipo_dato());
+//                                                        //El indice de un arreglo debe ser de tipo intero.
+//                                                        if(!tipo_arreglo.get_nombre_tipo().equalsIgnoreCase("integer")){
+//                                                            System.out.println("\nError Semantico : *** Tipos incompatibles, el identificador \""+token.get_lexema()+"\" debe ser de tipo integer *** Linea "+token.get_linea_programa());
+//                                                            System.exit(1);
+//                                                        }else{
+//                                                              //String dato=((Variable)s).get_dato();
+////                                                            if(dato.equalsIgnoreCase("")){
+////                                                                System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no ha sido inicializado *** Linea "+token.get_linea_programa());
+////                                                                System.exit(1);
+////                                                            }else{
+//                                                                //indice=Integer.parseInt(dato);
+//                                                                Variable v=(Variable)s;
+//                                                                //En la variable global queda el nivel lexico correcto.
+//                                                                cod="APVL "+this.nivel_lexico+", "+v.get_espacio_asignado();
+//                                                            //}
+//                                                        }
+//                                                    }else{
+//                                                         System.out.println("\nError Semantico : *** El indice \""+token.get_lexema()+"\" del arreglo \""+tk.get_lexema()+"\" debe estar definido como una VARIABLE ENTERA *** Linea "+token.get_linea_programa());
+//                                                         System.exit(1);
+//                                                    }
+//                                               }
+//                                            }
                                         
-                                        int indice=0;
-                                        if(digito(token)){
-                                            this.preanalisis++;
-                                            indice=Integer.parseInt(token.get_lexema());
-                                            cod="APCT "+indice;
-                                        }else
-                                            if(identificador(token)){
-                                                Simbolo s=this.obtener_valor(ts, token);
+                                        Strings tipo_syn=new Strings("");
+                                        Strings tipo_syn_cod=new Strings("");
+                                        ArrayList<ParMepa> mepa=new ArrayList();
+                                        exp(ts, tipo_syn, tipo_syn_cod,mepa);
 
-                                                //--- Esquema de traduccion ---
-                                                if(s == null){
-                                                    System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
-                                                    System.exit(1);
-                                                }else{
-                                                    if(s instanceof Variable){
-                                                        TipoDato tipo_arreglo=(TipoDato) (((Variable)s).get_tipo_dato());
-                                                        if(!tipo_arreglo.get_nombre_tipo().equalsIgnoreCase("integer")){
-                                                            System.out.println("\nError Semantico : *** Tipos incompatibles, el identificador \""+token.get_lexema()+"\" debe ser de tipo integer *** Linea "+token.get_linea_programa());
-                                                            System.exit(1);
-                                                        }else{
-                                                            String dato=((Variable)s).get_dato();
-                                                            if(dato.equalsIgnoreCase("")){
-                                                                System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no ha sido inicializado *** Linea "+token.get_linea_programa());
-                                                                System.exit(1);
-                                                            }else{
-                                                                indice=Integer.parseInt(dato);
-                                                                Variable v=(Variable)s;
-                                                                cod="APVL "+this.nivel_lexico+", "+v.get_espacio_asignado();
-                                                            }
-                                                        }
-                                                    }else{
-                                                         System.out.println("\nError Semantico : *** El indice \""+token.get_lexema()+"\" del arreglo \""+tk.get_lexema()+"\" debe estar definido como una VARIABLE ENTERA *** Linea "+token.get_linea_programa());
-                                                         System.exit(1);
-                                                    }
-                                               }
-                                            }
+                                        if(!(tipo_syn.get_string().equalsIgnoreCase("integer"))){
+                                            System.out.println("\nError Semantico : *** Tipos incompatibles, el indice de un arreglo debe ser una variable o expresion de tipo integer *** Linea "+tk.get_linea_programa());
+                                            System.exit(1);
+                                        }
                                         
                                         match("]");
                                         match(":=");
                                         
-                                        ((Arreglo)td).chequeo_de_tipos(tk, indice);
+                                        String tipo_dato_arreglo=((Arreglo)td).chequeo_de_tipos(tk);
                                         
-                                        //argumento internamente llama a expresion(ts, exp.tipo, exp.cod) que genera el codigo MEPA correspondiente al lado derecho de la asignacion.
+                                        //argumento internamente llama a expresion(ts, exp.tipo, exp.cod) que genera el codigo MEPA
+                                        //correspondiente al lado derecho de la asignacion.
                                         argumento(ts, argumentos);
+                                        
+                                        //--- Ahora agregamos el codigo mepa del la expresion indice del lado izquierdo ---
+                                        this.agregar_codigo_mepa(mepa);
+                                        
+                                        tipo=((TipoDato)argumentos.get(0).get_tipo_dato()).get_nombre_tipo();
+                                                
+                                        if(tipo_dato_arreglo.equalsIgnoreCase(tipo)){
+                                            sentencia_tipo.set_string(tipo);
+                                        }else{
+                                            System.out.println("\nError Semantico : *** Tipos incompatibles, esta intentando asignar una expresion de tipo "+tipo+", en una variable de tipo "+tipo_dato_arreglo+" *** Linea "+tk.get_linea_programa());
+                                            System.exit(1);
+                                        }
                                         
                                         //--- Codigo MEPA ---
                                         li=((Arreglo)td).get_limite_inferior();
@@ -1368,7 +1396,7 @@ public class GeneradorCodigo {
                                         else
                                             op="SUMA";
                                         
-                                        this.mepa.add(new ParMepa("",cod));
+                                        //this.mepa.add(new ParMepa("",cod));
                                         this.mepa.add(new ParMepa("","APCT "+li));
                                         this.mepa.add(new ParMepa("",op));
                                         this.mepa.add(new ParMepa("","ALAR "+n_lexico+", "+((Variable)simbolo).get_espacio_asignado()));
@@ -2595,48 +2623,60 @@ public class GeneradorCodigo {
                                                    }
 
                                                    this.preanalisis++;
-                                                   token=this.tokens_sintacticos.get(this.preanalisis);
-
-                                                   int indice=0;
-                                                   if(digito(token)){
-                                                       this.preanalisis++;
-                                                       indice=Integer.parseInt(token.get_lexema());
-                                                   }else{
-                                                       if(identificador(token)){
-                                                           this.preanalisis++;
-
-                                                           Simbolo s=this.obtener_valor(ts, token);
-
-                                                           //--- Esquema de traduccion ---
-                                                           if(s == null){
-                                                               System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
-                                                               System.exit(1);
-                                                           }else{
-                                                               if(s instanceof Variable){
-                                                                   TipoDato tipo=(TipoDato) (((Variable)s).get_tipo_dato());
-                                                                   if(!tipo.get_nombre_tipo().equalsIgnoreCase("integer")){
-                                                                       System.out.println("\nError Semantico : *** Tipos incompatibles, el identificador \""+token.get_lexema()+"\" debe ser de tipo integer *** Linea "+token.get_linea_programa());
-                                                                       System.exit(1);
-                                                                   }else{
-                                                                       String dato=((Variable)s).get_dato();
-                                                                       if(dato.equalsIgnoreCase("")){
-                                                                           System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no ha sido inicializado *** Linea "+token.get_linea_programa());
-                                                                           System.exit(1);
-                                                                       }else
-                                                                           indice=Integer.parseInt(dato);
-                                                                   }
-                                                               }else{
-                                                                    System.out.println("\nError Semantico : *** El indice \""+token.get_lexema()+"\" del arreglo \""+id.get_lexema()+"\" debe estar definido como una VARIABLE ENTERA *** Linea "+token.get_linea_programa());
-                                                                    System.exit(1);
-                                                               }
-                                                           }
-                                                       }
+//                                                   token=this.tokens_sintacticos.get(this.preanalisis);
+//
+//                                                   int indice=0;
+//                                                   if(digito(token)){
+//                                                       this.preanalisis++;
+//                                                       indice=Integer.parseInt(token.get_lexema());
+//                                                       this.mepa.add(new ParMepa("","APCT "+indice));
+//                                                   }else{
+//                                                       if(identificador(token)){
+//                                                           this.preanalisis++;
+//
+//                                                           Simbolo s=this.obtener_valor(ts, token);
+//
+//                                                           //--- Esquema de traduccion ---
+//                                                           if(s == null){
+//                                                               System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
+//                                                               System.exit(1);
+//                                                           }else{
+//                                                               if(s instanceof Variable){
+//                                                                   TipoDato tipo=(TipoDato) (((Variable)s).get_tipo_dato());
+//                                                                   if(!tipo.get_nombre_tipo().equalsIgnoreCase("integer")){
+//                                                                       System.out.println("\nError Semantico : *** Tipos incompatibles, el identificador \""+token.get_lexema()+"\" debe ser de tipo integer *** Linea "+token.get_linea_programa());
+//                                                                       System.exit(1);
+//                                                                   }else{
+////                                                                       String dato=((Variable)s).get_dato();
+////                                                                       if(dato.equalsIgnoreCase("")){
+////                                                                           System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no ha sido inicializado *** Linea "+token.get_linea_programa());
+////                                                                           System.exit(1);
+////                                                                       }else
+////                                                                           indice=Integer.parseInt(dato);
+//                                                                         this.mepa.add(new ParMepa("","APVL "+this.nivel_lexico+", "+((Variable)s).get_espacio_asignado()));
+//                                                                   }
+//                                                               }else{
+//                                                                    System.out.println("\nError Semantico : *** El indice \""+token.get_lexema()+"\" del arreglo \""+id.get_lexema()+"\" debe estar definido como una VARIABLE ENTERA *** Linea "+token.get_linea_programa());
+//                                                                    System.exit(1);
+//                                                               }
+//                                                           }
+//                                                       }
+//                                                   }
+                                                   Strings tipo_syn=new Strings("");
+                                                   Strings tipo_syn_cod=new Strings("");
+                                                   expresion(ts, tipo_syn, tipo_syn_cod);
+                                                   
+                                                   if(!(tipo_syn.get_string().equalsIgnoreCase("integer"))){
+                                                       System.out.println("\nError Semantico : *** Tipos incompatibles, el indice de un arreglo debe ser una variable o expresion de tipo integer *** Linea "+id.get_linea_programa());
+                                                       System.exit(1);
                                                    }
-
+                                                   
                                                    match("]");
 
-                                                   k_tipo.set_string(((Arreglo)td).chequeo_de_tipos(id, indice));
+                                                   //En este caso el chequeo de tipo se hace en un nivel superior del arbol de derivacion.
+                                                   k_tipo.set_string(((Arreglo)td).chequeo_de_tipos(id));
                                                    
+                                                   //--- Codigo MEPA ---
                                                    int li=((Arreglo)td).get_limite_inferior();
                                                    String op="OP";
                                                    if(li < 0)
@@ -2644,7 +2684,7 @@ public class GeneradorCodigo {
                                                    else
                                                        op="SUMA";
                                                    
-                                                   this.mepa.add(new ParMepa("","APCT "+indice));
+                                                   
                                                    this.mepa.add(new ParMepa("", "APCT "+li));
                                                    this.mepa.add(new ParMepa("",op));
                                                    this.mepa.add(new ParMepa("","APAR "+n_lexico+", "+((Variable)simbolo).get_espacio_asignado()));
@@ -2652,6 +2692,8 @@ public class GeneradorCodigo {
                                                    break;
                                         default : //; //Solamente tenemos un identificador.
                                                   if(simbolo instanceof Variable){
+                                                      System.out.println("\nESTA ES LA VARIABLE QUE GENERA PROBLEMAS "+id.get_lexema());
+                                                      //Aca hay que solucionar problemas de casteor entre TIPODATO y ARREGLO; REGISTRO ETC
                                                       TipoDato tipo=(TipoDato)((Variable)simbolo).get_tipo_dato();
                                                       Variable var=((Variable)simbolo);
                                                       k_tipo.set_string(tipo.get_nombre_tipo());
@@ -2750,6 +2792,771 @@ public class GeneradorCodigo {
         String label="L"+this.contador;
         this.contador++;
         return label;
+    }
+    
+    //-----------------------------------------------------------------------------------------------------
+    //------------------ Funcion Especial Para Arreglos ---------------------------------------------------
+    //-----------------------------------------------------------------------------------------------------
+    private void exp (TablaSimbolos ts, Strings expresion_tipo, Strings expresion_cod, ArrayList<ParMepa> mepa){
+        Strings t_tipo=new Strings("");
+        Strings e1_tipo=new Strings("");
+        
+        Strings t_cod=new Strings("");
+        Strings e1_cod=new Strings("");
+        
+        T(ts, t_tipo, t_cod,mepa);E1(ts, e1_tipo, e1_cod,mepa);
+        
+        //--- Esquema de traduccion ---
+        if(e1_tipo.get_string().equalsIgnoreCase("void"))
+            expresion_tipo.set_string(t_tipo.get_string());
+        else
+            if(t_tipo.get_string().equalsIgnoreCase(e1_tipo.get_string()))
+                expresion_tipo.set_string(t_tipo.get_string());
+            else{
+                System.out.println("\nError Semantico : *** Tipos incompatibles, no es posible comparar el tipo "+t_tipo.get_string()+" con el tipo "+e1_tipo.get_string()+" *** Linea "+this.inicio_exp.get_linea_programa());
+                System.exit(1);
+            }
+        
+        //--- Codigo MEPA ---
+        if(e1_cod.get_string().equalsIgnoreCase("void")){
+            expresion_cod.set_string(t_cod.get_string());
+            //this.mepa.add(new ParMepa("",t_cod.get_string()));
+        }else{
+            expresion_cod.set_string(t_cod.get_string() +"\n"+ e1_cod.get_string());
+            //this.mepa.add(new ParMepa("",t_cod.get_string()));
+            //this.mepa.add(new ParMepa("",e1_cod.get_string()));
+        }
+        
+        //System.out.println("En expresion se sintetitiza el tipo expresion_tipo : "+expresion_tipo.get_string());
+    }
+    
+    private void T (TablaSimbolos ts, Strings t_tipo, Strings t_cod,ArrayList<ParMepa> mepa){
+        Strings f_tipo=new Strings("");
+        Strings f_tipo_bis=new Strings("");
+        Strings t1_tipo=new Strings("");
+        
+        Strings f_cod=new Strings("");
+        Strings f_cod_bis=new Strings("");
+        Strings t1_cod=new Strings("");
+        
+        F(ts, f_tipo, f_cod,mepa);T1(ts, f_tipo_bis, t1_tipo, f_cod_bis, t1_cod,mepa);
+        
+        //--- Esquema de traduccion ---
+        if(t1_tipo.get_string().equalsIgnoreCase("void"))
+            t_tipo.set_string(f_tipo.get_string());
+        else
+            if(f_tipo.get_string().equalsIgnoreCase(t1_tipo.get_string()))
+                t_tipo.set_string(f_tipo.get_string());
+            else{
+                System.out.println("\nError Semantico : *** Tipos incompatibles, no es posible comparar el tipo "+f_tipo.get_string()+" con el tipo "+t1_tipo.get_string()+" *** Linea "+this.inicio_exp.get_linea_programa());
+                System.exit(1);
+            }
+        
+        //--- Codigo MEPA ---
+        if(t1_cod.get_string().equalsIgnoreCase("void")){
+            t_cod.set_string(f_cod.get_string());
+            //this.mepa.add(new ParMepa("",f_cod.get_string()));
+        }else{
+            t_cod.set_string(f_cod.get_string() +"\n"+ t1_cod.get_string());
+            //this.mepa.add(new ParMepa("",f_cod.get_string()));
+            //this.mepa.add(new ParMepa("",t1_cod.get_string()));
+        }
+        //System.out.println("En T, f_tipo : "+f_tipo.get_string()+" y t1_tipo : "+t1_tipo.get_string());
+        //System.out.println("En T, se sintetitiza el tipo t_tipo : "+t_tipo.get_string());
+    }
+    
+    private void F (TablaSimbolos ts, Strings f_tipo, Strings f_cod,ArrayList<ParMepa> mepa){
+        Strings g_tipo=new Strings("");
+        Strings g_cod=new Strings("");
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        if(token.get_lexema().equalsIgnoreCase("not")){
+            this.preanalisis++;G(ts, g_tipo, g_cod,mepa);
+            
+            //--- Esquema de traduccion ---
+            if(g_tipo.get_string().equalsIgnoreCase("boolean"))
+                f_tipo.set_string("boolean");
+            else{
+                System.out.println("\nError Semantico : *** Tipos incompatibles, el operador \"not\" requiere un operando de tipo boolean. Precede a un operando de tipo "+g_tipo.get_string()+" *** Linea "+token.get_linea_programa());
+                System.exit(1);
+            }
+            
+            //--- Codigo MEPA ---
+            f_cod.set_string(g_cod.get_string() +"\n"+ "NEGA");
+            //this.mepa.add(new ParMepa("",g_cod.get_string()));
+            mepa.add(new ParMepa("","NEGA"));
+            
+        }else{
+            G(ts, g_tipo, g_cod,mepa);
+            
+            //--- Esquema de traduccion ---
+            f_tipo.set_string(g_tipo.get_string());
+            
+            //--- Codigo MEPA ---
+            f_cod.set_string(g_cod.get_string());
+            //this.mepa.add(new ParMepa("",g_cod.get_string()));
+        }
+        
+        //System.out.println("En F, el tipo g_tipo : "+g_tipo.get_string());
+        //System.out.println("En F, se sintetitiza el tipo f_tipo : "+f_tipo.get_string());
+    }
+    
+    private void G (TablaSimbolos ts, Strings g_tipo, Strings g_cod, ArrayList<ParMepa> mepa){
+        Strings h_tipo=new Strings("");
+        Strings h_tipo_bis=new Strings("");//Guarda el tipo que sintetiza la funcion H que se llama dentro de G1.
+        Strings g1_tipo=new Strings("");
+        //El problema esta en no replicar h_tipo, por la rama H queda en boolean pero como es el mismo objeto el
+        //que pasa por la rama G1 se vuelve a modificar con integer.
+        
+        Strings h_cod=new Strings("");
+        Strings h_cod_bis=new Strings("");
+        Strings g1_cod=new Strings("");
+        
+        H(ts, h_tipo, h_cod,mepa);
+        G1(ts, h_tipo_bis, g1_tipo, h_cod_bis, g1_cod,mepa);
+        
+        //System.exit(1);
+        //--- Esquema de traduccion ---
+        if(g1_tipo.get_string().equalsIgnoreCase("void"))
+            g_tipo.set_string(h_tipo.get_string());
+        else
+            if(h_tipo.get_string().equalsIgnoreCase(g1_tipo.get_string()) && h_tipo.get_string().equalsIgnoreCase("integer"))
+                g_tipo.set_string("boolean");
+            else{
+                System.out.println("\nError Semantico : *** Tipos incompatibles, no es posible comparar el tipo "+h_tipo.get_string()+" con el tipo "+g1_tipo.get_string()+" *** Linea "+this.inicio_exp.get_linea_programa());
+                System.exit(1);
+            }
+        
+        //--- Codigo MEPA ---
+        if(g1_cod.get_string().equalsIgnoreCase("void")){
+            g_cod.set_string(h_cod.get_string());
+            //this.mepa.add(new ParMepa("",h_cod.get_string()));
+        }else{
+            g_cod.set_string(h_cod.get_string() +"\n"+ g1_cod.get_string());
+            //this.mepa.add(new ParMepa("",h_cod.get_string()));
+            //this.mepa.add(new ParMepa("",g1_cod.get_string()));
+        }
+        
+        //System.out.println("En G, el tipo h_tipo : "+h_tipo.get_string()+" y g1_tipo : "+g1_tipo.get_string());
+        //System.out.println("En G, se sintetiza el tipo g_tipo : "+g_tipo.get_string()+" G1 es "+g1_tipo.get_string());
+    }
+    
+    private void H (TablaSimbolos ts, Strings h_tipo, Strings h_cod,ArrayList<ParMepa> mepa){
+        Strings i_tipo=new Strings("");
+        Strings i_tipo_bis=new Strings("");
+        Strings h1_tipo=new Strings("");
+        
+        Strings i_cod=new Strings("");
+        Strings i_cod_bis=new Strings("");
+        Strings h1_cod=new Strings("");
+        
+        I(ts, i_tipo, i_cod,mepa);H1(ts, i_tipo_bis, h1_tipo, i_cod_bis, h1_cod,mepa);
+        
+        //--- Esquema de traduccion ---
+        if(h1_tipo.get_string().equalsIgnoreCase("void"))
+            h_tipo.set_string(i_tipo.get_string());
+        else
+            if(i_tipo.get_string().equalsIgnoreCase(h1_tipo.get_string()) && i_tipo.get_string().equalsIgnoreCase("integer"))
+                h_tipo.set_string(i_tipo.get_string());
+            else{
+                System.out.println("\nError Semantico : *** Tipos incompatibles, no es posible comparar el tipo "+i_tipo.get_string()+" con el tipo "+h1_tipo.get_string()+" *** Linea "+this.inicio_exp.get_linea_programa());
+                System.exit(1);
+            }
+        
+        //--- Codigo MEPA ---
+        if(h1_cod.get_string().equalsIgnoreCase("void")){
+            h_cod.set_string(i_cod.get_string());
+            //this.mepa.add(new ParMepa("",i_cod.get_string()));
+        }else{
+            h_cod.set_string(i_cod.get_string() +"\n"+ h1_cod.get_string());
+            //this.mepa.add(new ParMepa("",i_cod.get_string()));
+            //this.mepa.add(new ParMepa("",h1_cod.get_string()));
+        }
+        //System.out.println("En H, el tipo i_tipo : "+i_tipo.get_string()+" y h1_tipo : "+h1_tipo.get_string());
+        //System.out.println("En H, se sintetitiza el tipo h_tipo : "+h_tipo.get_string());
+    }
+    
+    private void I (TablaSimbolos ts, Strings i_tipo, Strings i_cod,ArrayList<ParMepa> mepa){
+        Strings j_tipo=new Strings("");
+        Strings j_tipo_bis=new Strings("");
+        Strings i1_tipo=new Strings("");
+        
+        Strings j_cod=new Strings("");
+        Strings j_cod_bis=new Strings("");
+        Strings i1_cod=new Strings("");
+        
+        J(ts, j_tipo, j_cod,mepa);I1(ts, j_tipo_bis, i1_tipo, j_cod_bis, i1_cod,mepa);
+        
+        //--- Esquema de traduccion ---
+        if(i1_tipo.get_string().equalsIgnoreCase("void"))
+            i_tipo.set_string(j_tipo.get_string());
+        else
+            if(j_tipo.get_string().equalsIgnoreCase(i1_tipo.get_string()))
+                i_tipo.set_string(j_tipo.get_string());
+            else{
+                System.out.println("\nError Semantico : *** Tipos incompatibles, no es posible comparar el tipo "+j_tipo.get_string()+" con el tipo "+i1_tipo.get_string()+" *** Linea "+this.inicio_exp.get_linea_programa());
+                System.exit(1);
+            }
+        
+        //--- Codigo MEPA ---
+        if(i1_cod.get_string().equalsIgnoreCase("void")){
+            i_cod.set_string(j_cod.get_string());
+            //this.mepa.add(new ParMepa("",j_cod.get_string()));
+        }else{
+            i_cod.set_string(j_cod.get_string() +"\n"+ i1_cod.get_string());
+            //this.mepa.add(new ParMepa("",j_cod.get_string()));
+            //this.mepa.add(new ParMepa("",i1_cod.get_string()));
+        }
+        
+        //System.out.println("En I, el tipo j_tipo : "+j_tipo.get_string()+" y i1_tipo : "+i1_tipo.get_string());
+        //System.out.println("En I, se sintetitiza el tipo i_tipo : "+i_tipo.get_string());
+    }
+    
+    private void J (TablaSimbolos ts, Strings j_tipo, Strings j_cod,ArrayList<ParMepa> mepa){
+        //--- Para sintetizar el tipo de un operando de expresion ---
+        Strings k_tipo=new Strings("");
+        Strings k_cod=new Strings("");
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        if(token.get_lexema().equalsIgnoreCase("-")){
+            this.preanalisis++;K(ts, k_tipo, k_cod,mepa);
+            
+            //--- Esquema de traduccion ---
+            if(k_tipo.get_string().equalsIgnoreCase("integer"))
+                j_tipo.set_string("integer");
+            else{
+                if(k_tipo.get_string().equalsIgnoreCase("boolean"))
+                    j_tipo.set_string("boolean");
+                else{
+                    token=this.tokens_sintacticos.get(this.preanalisis);
+                    System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" debe ser de tipo integer o boolean *** Linea "+token.get_linea_programa());
+                    System.exit(1);
+                }
+            }
+            
+            //--- Codigo MEPA ---
+            j_cod.set_string(k_cod.get_string() +"\n"+ "UMEN");
+            mepa.add(new ParMepa("",k_cod.get_string()));
+            mepa.add(new ParMepa("","UMEN"));
+            
+        }else{
+            K(ts, k_tipo, k_cod,mepa);
+            //  Sintetizamos el tipo que contiene k_tipo.
+            j_tipo.set_string(k_tipo.get_string());
+            //  Sintetizamos el codigo MEPA que proviene de las hojas.
+            j_cod.set_string(k_cod.get_string());
+            mepa.add(new ParMepa("",k_cod.get_string()));
+        }
+        
+        //System.out.println("En J, el tipo k_tipo : "+k_tipo.get_string());
+        //System.out.println("En J, se sintetitiza el tipo j_tipo : "+j_tipo.get_string());
+    }
+    
+    private void I1 (TablaSimbolos ts, Strings j_tipo, Strings i1_tipo, Strings j_cod, Strings i1_cod,ArrayList<ParMepa> mepa){
+        
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        switch(token.get_lexema()){
+            case "*" :
+            case "/" : this.preanalisis++;
+                       J(ts, j_tipo, j_cod,mepa);
+                       
+                       mepa.add(new ParMepa("",this.get_inst(token)));
+                       
+                       I1(ts, j_tipo, i1_tipo, j_cod, i1_cod,mepa);
+                       
+                       //--- Esquema de traduccion ---
+                       if(i1_tipo.get_string().equalsIgnoreCase("void")){
+                           //El tema con j_tipo es asi: el mismo objeto pasa por parametro en J e I1. Como estamos en presencia
+                           //de una operacion entera, el j_tipo que sintetizamos en J es integer. El mismo objeto pasa a I1, donde
+                           //puede modificarse y adquirir dos valores.
+                           //a) integer : no altera el procedimiento, porque deberiamos sintetizar un tipo integer en I1 para que
+                           //el chequeo sea exitoso. Eso es lo que se hace al preguntar si el tipo es integer. Por otra parte
+                           //J nos conduce a una hoja por lo tanto j_tipo en esta llamada queda con el valor de debemos sintetizar.
+                           //b) otro : j_tipo podria adquirir otro tipo, ej : boolean, en I1. En este caso siempre preguntamos que
+                           //el tipo sintetizado sea integer. Si no es integer emitimos un error.
+                           //Si pasamos otro objeto, ej . j_tipo_bis, queda vacio. En este caso debemos incluir una nueva 
+                           //condicion.
+                           if(j_tipo.get_string().equalsIgnoreCase("integer"))
+                               i1_tipo.set_string("integer");
+                           else{
+                               System.out.println("\nError Semantico : *** Tipos incompatibles, el operador "+token.get_lexema()+" requiere un operando de tipo integer, se sintetizo el tipo "+j_tipo.get_string()+" *** Linea "+token.get_linea_programa());
+                               System.exit(1);
+                           }
+                       }
+                       
+                       //--- Codigo MEPA ---
+                       if(i1_cod.get_string().equalsIgnoreCase("void")){
+                           i1_cod.set_string(j_cod.get_string() +"\n"+ this.get_inst(token));
+                           //this.mepa.add(new ParMepa("",j_cod.get_string()));
+                           //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                       }else{
+                           i1_cod.set_string(j_cod.get_string() +"\n"+ i1_cod.get_string());
+                           //this.mepa.add(new ParMepa("",j_cod.get_string()));
+                           //this.mepa.add(new ParMepa("",i1_cod.get_string()));
+                           //this.mepa.add(new ParMepa("",this.get_inst(token))); //Tenemos un MULT-DIVI consecutivo en el archivo mepa.
+                       }
+                       
+                       break;
+            default : //; //Presencia de cadena nula.
+                      i1_tipo.set_string("void");
+                      i1_cod.set_string("void");
+        }
+        
+        //System.out.println("En I1, el tipo j_tipo : "+j_tipo.get_string());
+        //System.out.println("En I1, se sintetitiza el tipo i1_tipo : "+i1_tipo.get_string());
+    }
+    
+    private void H1 (TablaSimbolos ts, Strings i_tipo, Strings h1_tipo, Strings i_cod, Strings h1_cod,ArrayList<ParMepa> mepa){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        switch(token.get_lexema()){
+            case "+" :
+            case "-" : this.preanalisis++;
+                       I(ts, i_tipo, i_cod,mepa);
+                       
+                       mepa.add(new ParMepa("",this.get_inst(token)));
+                       
+                       H1(ts, i_tipo, h1_tipo, i_cod, h1_cod,mepa);
+                       
+                       //--- Esquema de traduccion ---
+                       if(h1_tipo.get_string().equalsIgnoreCase("void")){
+                           if(i_tipo.get_string().equalsIgnoreCase("integer"))
+                               h1_tipo.set_string("integer");
+                           else{
+                               System.out.println("\nError Semantico : *** Tipos incompatibles, el operador "+token.get_lexema()+" requiere operandos de tipo integer. Se encontro un operando de tipo "+i_tipo.get_string()+" *** Linea "+token.get_linea_programa());
+                               System.exit(1);
+                           }
+                       }
+                       
+                       //--- Codigo MEPA ---
+                       if(h1_cod.get_string().equalsIgnoreCase("void")){
+                           h1_cod.set_string(i_cod.get_string() +"\n"+ this.get_inst(token));
+                           //this.mepa.add(new ParMepa("",i_cod.get_string()));
+                           //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                       }else{
+                           h1_cod.set_string(i_cod.get_string() +"\n"+ h1_cod.get_string() + "\n" + this.get_inst(token));
+                           //this.mepa.add(new ParMepa("",i_cod.get_string()));
+                           //this.mepa.add(new ParMepa("",h1_cod.get_string()));
+                           //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                       }
+                       break;
+            default : //; //Presencia de cadena nula.
+                      h1_tipo.set_string("void");
+                      
+                      h1_cod.set_string("void");
+        }
+        
+        //System.out.println("En H1, el tipo i_tipo : "+i_tipo.get_string());
+        //System.out.println("En H1, se sintetitiza el tipo h1_tipo : "+h1_tipo.get_string());
+    }
+    
+    private void G1 (TablaSimbolos ts, Strings h_tipo, Strings g1_tipo, Strings h_cod, Strings g1_cod,ArrayList<ParMepa> mepa){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        switch(token.get_lexema()){
+            case ">"  :
+            case "<"  :
+            case ">=" :
+            case "<=" :
+            case "="  :
+            case "<>" : this.preanalisis++;
+                        H(ts, h_tipo, h_cod,mepa);
+                        
+                        mepa.add(new ParMepa("",this.get_inst(token)));
+                        
+                        G1(ts, h_tipo, g1_tipo, h_cod, g1_cod,mepa);
+                        
+                        //--- Esquema de traduccion ---
+                        if(g1_tipo.get_string().equalsIgnoreCase("void")){
+                            if(h_tipo.get_string().equalsIgnoreCase("integer"))
+                                g1_tipo.set_string("integer");
+                            else{
+                                System.out.println("\nError Semantico : *** Tipos incompatibles, el operador relacional "+token.get_lexema()+" requiere operandos de tipo integer. Se encontro un operando de tipo "+h_tipo.get_string()+" *** Linea "+token.get_linea_programa());
+                                System.exit(1);
+                            }
+                        }else
+                            ;//Que pasa si g1_tipo no es void???. Esto no es posible porque solamente la regla G1 genera exp relacionales.
+                        
+                        //--- Codigo MEPA ---
+                        if(g1_cod.get_string().equalsIgnoreCase("void")){
+                            g1_cod.set_string(h_cod.get_string() +"\n"+ this.get_inst(token));
+                            //this.mepa.add(new ParMepa("",h_cod.get_string()));
+                            //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                        }else{
+                            g1_cod.set_string(h_cod.get_string() +"\n"+ g1_cod.get_string() + "\n" + this.get_inst(token));
+                            //this.mepa.add(new ParMepa("",h_cod.get_string()));
+                            //this.mepa.add(new ParMepa("",g1_cod.get_string()));
+                            //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                        }
+                        break;
+            default : //; //Presencia de cadena nula.
+                      g1_tipo.set_string("void");
+                      
+                      //--- Codigo MEPA ---
+                      g1_cod.set_string("void");
+        }
+        
+        //System.out.println("En G1, el tipo h_tipo : "+h_tipo.get_string());
+        //System.out.println("En G1, se sintetitiza el tipo g1_tipo : "+g1_tipo.get_string());
+    }
+    
+    private void T1 (TablaSimbolos ts, Strings f_tipo, Strings t1_tipo, Strings f_cod, Strings t1_cod,ArrayList<ParMepa> mepa){
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        if(token.get_lexema().equalsIgnoreCase("and")){
+            this.preanalisis++;
+            F(ts, f_tipo, f_cod,mepa);
+            
+            mepa.add(new ParMepa("","CONJ"));
+            
+            T1(ts, f_tipo, t1_tipo, f_cod, t1_cod,mepa);
+            
+            //--- Esquema de traduccion ---
+            if(t1_tipo.get_string().equalsIgnoreCase("void")){
+                if(f_tipo.get_string().equalsIgnoreCase("boolean"))
+                    t1_tipo.set_string("boolean");
+                else{
+                    System.out.println("\nError Semantico : *** Tipos incompatibles, el operador \"and\" requiere operandos de tipo boolean. Se encontro un operando de tipo "+f_tipo.get_string()+" *** Linea "+token.get_linea_programa());
+                    System.exit(1);
+                }
+            }
+            
+            //--- Codigo MEPA ---
+            if(t1_cod.get_string().equalsIgnoreCase("void")){
+                t1_cod.set_string(f_cod.get_string() + "\n" + "CONJ");
+                //this.mepa.add(new ParMepa("",f_cod.get_string()));
+                //this.mepa.add(new ParMepa("","CONJ"));
+            }else{
+                t1_cod.set_string(f_cod.get_string() + "\n" + t1_cod.get_string() + "\n" + this.get_inst(token));
+                //this.mepa.add(new ParMepa("",f_cod.get_string()));
+                //this.mepa.add(new ParMepa("",t1_cod.get_string()));
+                //this.mepa.add(new ParMepa("",this.get_inst(token)));
+            }
+            
+        }else{//; //Presencia de cadena nula.
+            t1_tipo.set_string("void");
+            t1_cod.set_string("void");
+        }
+        //System.out.println("En T1, el tipo f_tipo : "+f_tipo.get_string());
+        //System.out.println("En T1, se sintetitiza el tipo t1_tipo : "+t1_tipo.get_string());
+    }
+    
+    private void E1 (TablaSimbolos ts, Strings e1_tipo, Strings e1_cod,ArrayList<ParMepa> mepa){
+        Strings t_tipo=new Strings("");
+        Strings t_cod=new Strings("");
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        if(token.get_lexema().equalsIgnoreCase("or")){
+            this.preanalisis++;
+            T(ts, t_tipo, t_cod,mepa);
+            
+            mepa.add(new ParMepa("","DISJ"));
+            
+            E1(ts, e1_tipo, e1_cod,mepa);
+            
+            //--- Esquema de traduccion ---
+            if(e1_tipo.get_string().equalsIgnoreCase("void")){
+                if(t_tipo.get_string().equalsIgnoreCase("boolean"))
+                    e1_tipo.set_string("boolean");
+                else{
+                    System.out.println("\nError Semantico : *** Tipos incompatibles, el operador \"or\" requiere operandos de tipo boolean. Se encontro un operando de tipo "+e1_tipo.get_string()+" *** Linea");
+                    System.exit(1);
+                }
+            }
+            
+            //--- Codigo MEPA ---
+            if(e1_cod.get_string().equalsIgnoreCase("void")){
+                e1_cod.set_string(t_cod.get_string() + "\n" + "DISJ");
+                //this.mepa.add(new ParMepa("",t_cod.get_string()));
+                //this.mepa.add(new ParMepa("","DISJ"));
+            }else{
+                e1_cod.set_string(t_cod.get_string() + "\n" + e1_cod.get_string() + "\n" + "DISJ");
+                //this.mepa.add(new ParMepa("",t_cod.get_string()));
+                //this.mepa.add(new ParMepa("",e1_cod.get_string()));
+                //this.mepa.add(new ParMepa("","DISJ"));
+            }
+            
+        }else{
+            //; //Presencia de cadena nula.
+            e1_tipo.set_string("void");
+            
+            //--- Codigo MEPA ---
+            e1_cod.set_string("void");
+        }
+        
+        //System.out.println("En E1, el tipo t_tipo : "+t_tipo.get_string());
+        //System.out.println("En E1, se sintetitiza el tipo e1_tipo : "+e1_tipo.get_string());
+    }
+    
+    private void K (TablaSimbolos ts, Strings k_tipo, Strings k_cod,ArrayList<ParMepa> mepa){
+        Simbolo simbolo=null;
+        Token id=null;
+        Token token=this.tokens_sintacticos.get(this.preanalisis);
+        
+        if(token.get_lexema().equalsIgnoreCase("(")){
+            
+            Strings tipo_syn=new Strings("");
+            Strings tipo_syn_cod=new Strings("");
+            this.preanalisis++;
+            expresion(ts, tipo_syn, tipo_syn_cod);
+            //  Sintetizamos el tipo de expresion.
+            k_tipo.set_string(tipo_syn.get_string());
+            //System.out.println("\n contenido de k_tipo en exp "+k_tipo.get_string());
+            match(")");
+        }else{
+            if(digito(token)){
+                this.preanalisis++;
+                k_tipo.set_string("integer");
+                k_cod.set_string("APCT "+token.get_lexema());
+                
+            }else{
+                
+                switch(token.get_lexema()){
+                
+                    case "false"   :
+                    case "true"    : this.preanalisis++;
+                                     k_tipo.set_string("boolean");
+                                     k_cod.set_string(this.get_inst(token));
+                                     break;
+                                     
+                    case "maxint"  : this.preanalisis++;
+                                     k_tipo.set_string("integer");
+                                     break;
+                                     
+                    case "succ"    : this.preanalisis++;
+                                     this.inicio_exp=token;
+                                     Strings succ_tipo=new Strings("");
+                                     
+                                     succ(ts,succ_tipo);
+                                     k_tipo.set_string(succ_tipo.get_string());
+                                     
+                                     break;
+                                     
+                    case "pred"    : this.preanalisis++;
+                                     this.inicio_exp=token;
+                                     Strings pred_tipo=new Strings("");
+                                     
+                                     pred(ts,pred_tipo);
+                                     k_tipo.set_string(pred_tipo.get_string());
+                                     
+                                     break;
+                    
+                    default:    //Estamos en el lado derecho de una asignacion.
+                                if(identificador(token)){
+                                    //id mantiene una copia del token que en principio se corresponde con un identificador.
+                                    id=token;
+                                    simbolo=this.obtener_valor(ts, token);
+                                    //  Verificamos si el identificador se encuentra definido em la TS.
+                                    if(simbolo == null){
+                                        System.out.println("\nError Semantico : *** El identificador \""+id.get_lexema()+"\" no se encuentra definido *** Linea "+id.get_linea_programa());
+                                        System.exit(1);
+                                    }
+
+                                    this.preanalisis++;
+                                    token=this.tokens_sintacticos.get(this.preanalisis);
+
+                                    switch(token.get_lexema()){
+                                        //--- Llamada a Subprograma ---
+                                        case "("   : //Si se cumple esta condicion significa que estamos usando un procedimiento en una expresion relacional, aritmetica o logica.
+                                                     if((simbolo instanceof Procedimiento)){
+                                                        System.out.println("\nError Semantico : *** No se puede utilizar un Procedimiento como operando en una expresion aritmetica, relacional o booleana *** linea "+id.get_linea_programa());
+                                                        System.exit(1);
+                                                     }
+                                                     
+                                                     //Verificamos si el identificador se encuentra definido como Funcion.     
+                                                     if(!((simbolo instanceof Funcion))){
+                                                        System.out.println("\nError Semantico : *** El identificador \""+id.get_lexema()+"\" debe estar definido como FUNCION *** Linea "+id.get_linea_programa());
+                                                        System.exit(1);
+                                                     }
+                                                     
+                                                     //Reservamos memoria para el valor de retorno de la funcion.
+                                                     mepa.add(new ParMepa("","RMEM 1"));
+                                                     
+                                                     //Estructura para guardar el tipo de los argumentos. Internamente ejecuta expresion(ts,exp_cod)
+                                                     //que a su vez genera codigo MEPA.
+                                                     ArrayList<Parametro> argumentos=new ArrayList();
+                                                     this.preanalisis++;
+                                                     args(ts, argumentos);
+
+                                                     //   Verificamos cantidad y tipos de parametros para una Funcion o Procedimiento.
+                                                     if(simbolo instanceof Funcion)
+                                                         k_tipo.set_string(((Funcion) simbolo).chequeo_de_tipos(id, argumentos));
+                                                     //else
+                                                         //k_tipo.set_string(((Procedimiento) simbolo).chequeo_de_tipos(id, argumentos));
+
+                                                     match(")");
+
+                                                     token=this.tokens_sintacticos.get(this.preanalisis);
+                                                     //Verificamos si un procedimiento no esta incluido en una expresion.
+                                                     //if(!token.get_lexema().equalsIgnoreCase(";") && (simbolo instanceof Procedimiento)){
+                                                         
+                                                     //}
+                                                     //--- Codigo MEPA ---
+                                                     Simbolo funcion=this.obtener_valor(ts, id);
+                                                     if(funcion instanceof Funcion)
+                                                         mepa.add(new ParMepa("","LLPR "+((Funcion)funcion).get_etiqueta()));
+                                                     break;
+                                        case "." : //--- Acceso a registro ---
+                                                   Simbolo td_r=((Variable)simbolo).get_tipo_dato();
+                                                   
+                                                   //Significa que estamos en presencia de un tipo definido por el usuario.
+                                                   if(td_r instanceof TipoDato){
+                                                       String id_r=((TipoDato)td_r).get_nombre_tipo();
+                                                       td_r=this.obtener_valor(ts, new Token(id_r));
+                                                   }
+                                                   
+                                                   //   Verificamos si el identificador se encuentra definido como Regtistro.
+                                                   if(!(td_r instanceof Registro)){
+                                                       System.out.println("\nError Semantico : *** El identificador \""+id.get_lexema()+"\" debe estar definido como REGISTRO *** Linea "+id.get_linea_programa());
+                                                       System.exit(1);
+                                                   }
+
+                                                   this.preanalisis++;
+                                                   token=this.tokens_sintacticos.get(this.preanalisis);
+                                                   if(identificador(token))
+                                                       this.preanalisis++;
+
+                                                   k_tipo.set_string(((Registro)td_r).chequeo_de_tipos(id, token));
+
+                                                   break;
+                                        case "[" : //--- Acceso a arreglo ---
+                                                   //La idea de esta condicion es verificar si no estamos usando un nombre asociado a procedimiento, funcion o type como arreglo
+                                                   //esto es: fun1[10]:=100;
+                                                   int n_lexico=this.nivel_lexico;
+                                                   if(!(simbolo instanceof Variable)){
+                                                       System.out.println("\nError Semantico : *** El identificador \""+id.get_lexema()+"\" no se corresponde con una definicion de ARREGLO *** Linea "+id.get_linea_programa());
+                                                       System.exit(1);
+                                                   }
+                                            
+                                                   Simbolo td=((Variable)simbolo).get_tipo_dato();
+                                                   
+                                                   //Significa que estamos en presencia de un tipo definido por el usuario.
+                                                   if(td instanceof TipoDato){
+                                                       String id_a=((TipoDato)td).get_nombre_tipo();
+                                                       td=this.obtener_valor(ts, new Token(id_a));
+                                                   }
+                                                   
+                                                   //   Verificamos si el identificador se encuentra definido como Arreglo.
+                                                   if(!(td instanceof Arreglo)){
+                                                       System.out.println("\nError Semantico : *** El identificador \""+id.get_lexema()+"\" debe estar definido como ARREGLO *** Linea "+id.get_linea_programa());
+                                                       System.exit(1);
+                                                   }
+
+                                                   this.preanalisis++;
+//                                                   token=this.tokens_sintacticos.get(this.preanalisis);
+//
+//                                                   int indice=0;
+//                                                   if(digito(token)){
+//                                                       this.preanalisis++;
+//                                                       indice=Integer.parseInt(token.get_lexema());
+//                                                       this.mepa.add(new ParMepa("","APCT "+indice));
+//                                                   }else{
+//                                                       if(identificador(token)){
+//                                                           this.preanalisis++;
+//
+//                                                           Simbolo s=this.obtener_valor(ts, token);
+//
+//                                                           //--- Esquema de traduccion ---
+//                                                           if(s == null){
+//                                                               System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
+//                                                               System.exit(1);
+//                                                           }else{
+//                                                               if(s instanceof Variable){
+//                                                                   TipoDato tipo=(TipoDato) (((Variable)s).get_tipo_dato());
+//                                                                   if(!tipo.get_nombre_tipo().equalsIgnoreCase("integer")){
+//                                                                       System.out.println("\nError Semantico : *** Tipos incompatibles, el identificador \""+token.get_lexema()+"\" debe ser de tipo integer *** Linea "+token.get_linea_programa());
+//                                                                       System.exit(1);
+//                                                                   }else{
+////                                                                       String dato=((Variable)s).get_dato();
+////                                                                       if(dato.equalsIgnoreCase("")){
+////                                                                           System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no ha sido inicializado *** Linea "+token.get_linea_programa());
+////                                                                           System.exit(1);
+////                                                                       }else
+////                                                                           indice=Integer.parseInt(dato);
+//                                                                         this.mepa.add(new ParMepa("","APVL "+this.nivel_lexico+", "+((Variable)s).get_espacio_asignado()));
+//                                                                   }
+//                                                               }else{
+//                                                                    System.out.println("\nError Semantico : *** El indice \""+token.get_lexema()+"\" del arreglo \""+id.get_lexema()+"\" debe estar definido como una VARIABLE ENTERA *** Linea "+token.get_linea_programa());
+//                                                                    System.exit(1);
+//                                                               }
+//                                                           }
+//                                                       }
+//                                                   }
+                                                   Strings tipo_syn=new Strings("");
+                                                   Strings tipo_syn_cod=new Strings("");
+                                                   expresion(ts, tipo_syn, tipo_syn_cod);
+                                                   
+                                                   if(!(tipo_syn.get_string().equalsIgnoreCase("integer"))){
+                                                       System.out.println("\nError Semantico : *** Tipos incompatibles, el indice de un arreglo debe ser una variable o expresion de tipo integer *** Linea "+id.get_linea_programa());
+                                                       System.exit(1);
+                                                   }
+                                                   
+                                                   match("]");
+
+                                                   //En este caso el chequeo de tipo se hace en un nivel superior del arbol de derivacion.
+                                                   k_tipo.set_string(((Arreglo)td).chequeo_de_tipos(id));
+                                                   
+                                                   //--- Codigo MEPA ---
+                                                   int li=((Arreglo)td).get_limite_inferior();
+                                                   String op="OP";
+                                                   if(li < 0)
+                                                       op="SUST";
+                                                   else
+                                                       op="SUMA";
+                                                   
+                                                   
+                                                   mepa.add(new ParMepa("", "APCT "+li));
+                                                   mepa.add(new ParMepa("",op));
+                                                   mepa.add(new ParMepa("","APAR "+n_lexico+", "+((Variable)simbolo).get_espacio_asignado()));
+                                                   
+                                                   break;
+                                        default : //; //Solamente tenemos un identificador.
+                                                  if(simbolo instanceof Variable){
+                                                      System.out.println("\nESTA ES LA VARIABLE QUE GENERA PROBLEMAS "+id.get_lexema());
+                                                      //Aca hay que solucionar problemas de casteor entre TIPODATO y ARREGLO; REGISTRO ETC
+                                                      TipoDato tipo=(TipoDato)((Variable)simbolo).get_tipo_dato();
+                                                      Variable var=((Variable)simbolo);
+                                                      k_tipo.set_string(tipo.get_nombre_tipo());
+                                                      k_cod.set_string("APVL "+this.nivel_lexico+", "+var.get_espacio_asignado());                                                                                                            
+                                                      //Si no es parametro formal, es una variable que pertenece a las definiciones locales o bien a otro subprograma en calidad de variable local o parametro formal.
+                                                          
+                                                      
+                                                  }else{
+                                                      if(simbolo instanceof Constante){
+                                                          k_tipo.set_string(((Constante)simbolo).get_tipo());
+                                                      }else{
+                                                          //Significa que se hace referencia a un parametro formal. En este caso obtener_parametro_formal devuelve un objeto TipoDato.
+                                                          if(simbolo instanceof TipoDato){
+                                                              k_tipo.set_string(((TipoDato)simbolo).get_nombre_tipo());
+                                                              if(this.es_parametro_formal){
+                                                                  //Busco el subprograma correspondiente en la cadena estatica.
+                                                                  Simbolo subprograma=this.obtener_valor(ts, new Token(ts.get_propietario()));
+                                                                  int desplazamiento=-1;
+                                                                  if(subprograma instanceof Procedimiento){
+                                                                      desplazamiento=((Procedimiento)subprograma).calcular_desplazamiento(id);
+                                                                  }else{
+                                                                      desplazamiento=((Funcion)subprograma).calcular_desplazamiento(id);
+                                                                  }
+                                                                  System.out.println("\nEste es el valor de desplazamiento : "+desplazamiento);
+                                                                  k_cod.set_string("APVL "+this.nivel_lexico+", "+desplazamiento);
+                                                              }
+                                                          }else
+                                                              if(simbolo instanceof Procedimiento){                                                       
+                                                                  System.out.println("\nError Semantico : *** No se puede utilizar un Procedimiento como operando en una expresion aritmetica, relacional o booleana *** linea "+id.get_linea_programa());
+                                                                  System.exit(1);
+                                                              }
+                                                      }
+                                                  }
+                                    }
+
+                
+                                }
+                }//Fin del switch.
+            }
+        }
+    }
+    
+    private void agregar_codigo_mepa (ArrayList<ParMepa> mepa){
+        int i;
+        int n=mepa.size();
+        for(i=0; i<n; i++){
+            this.mepa.add(mepa.get(i));
+        }
     }
     
 }

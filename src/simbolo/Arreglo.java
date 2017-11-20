@@ -115,12 +115,13 @@ public class Arreglo extends Simbolo {
         return super.a_cadena()+" , "+this.limite_inferior+" , "+this.limite_superior+" , "+this.tipo_dato.a_cadena();
     }
     
-    public String chequeo_de_tipos (Token id, int indice){
+    public String chequeo_de_tipos (Token id){
         String tipo="";
-        if(!((indice >= this.limite_inferior) && (indice <= this.limite_superior))){
-            System.out.println("\nError Semantico : *** Indice fuera de rango, los limites del arreglo \""+id.get_lexema()+"\" son [ "+this.limite_inferior+", "+this.limite_superior+" ] *** Linea "+id.get_linea_programa());
-            System.exit(1);
-        }
+        //Hay que quitar el error "Falta iniciualizar variable"
+//        if(!((indice >= this.limite_inferior) && (indice <= this.limite_superior))){
+//            System.out.println("\nError Semantico : *** Indice fuera de rango, los limites del arreglo \""+id.get_lexema()+"\" son [ "+this.limite_inferior+", "+this.limite_superior+" ] *** Linea "+id.get_linea_programa());
+//            System.exit(1);
+//        }
         
         //  Podemos obtener integer, boolean o un nuevo tipo de dato definido por el usuario.
         if(this.tipo_dato instanceof TipoDato)
