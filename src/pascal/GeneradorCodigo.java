@@ -173,10 +173,10 @@ public class GeneradorCodigo {
             etiqueta=this.mepa.get(i).get_etiqueta();
             if(etiqueta.length() == 0){
                 espacio=this.espacio(10);
-                codigo_mepa += "\n"+espacio+this.mepa.get(i).get_inst();
+                codigo_mepa += espacio+this.mepa.get(i).get_inst()+"\n";
             }else{
                 espacio=this.espacio(10 - etiqueta.length());
-                codigo_mepa += "\n"+etiqueta+espacio+this.mepa.get(i).get_inst();
+                codigo_mepa += etiqueta+espacio+this.mepa.get(i).get_inst()+"\n";
             }
         }
         
@@ -200,8 +200,8 @@ public class GeneradorCodigo {
     //-----------------------------------------------------------------------------------
     
     private void mi_pascal (){
-        this.codigo_mepa += "\nINPP\n";
-        this.mepa.add(new ParMepa("","INPP\n"));
+        this.codigo_mepa += "INPP";
+        this.mepa.add(new ParMepa("","INPP"));
         int nivel_lexico=1;
         int lmem=0;
         
@@ -210,6 +210,7 @@ public class GeneradorCodigo {
         definicion(this.tabla_simbolos);
         
         //cant_variables se resetea en cada llamada a declaracion_subprogramas(ts,nivel_lexico).
+        //Ambas variables empiezan en cero. Antes de llamar a definicion(ts) se deben resetear.
         lmem=this.cant_variables + this.cant_mem_estructurado;
         //this.codigo_mepa += "\nRMEM "+this.cant_variables+"\n";
         
@@ -229,7 +230,6 @@ public class GeneradorCodigo {
         }
         match(".");
         
-        //this.codigo_mepa += "\nPARA\n";
         this.mepa.add(new ParMepa("","LMEM "+lmem));
         this.mepa.add(new ParMepa("","PARA"));
     }
@@ -327,7 +327,7 @@ public class GeneradorCodigo {
                          }
                          
                          //--- Codigo MEPA ---
-                         this.mepa.add(new ParMepa("","RMEM "+this.cant_variables+"\n"));
+                         this.mepa.add(new ParMepa("","RMEM "+this.cant_variables));
                          
                          break;
             default : //Segmento de definicion vacio.
@@ -569,14 +569,7 @@ public class GeneradorCodigo {
         if(li==0 && ls>0)
             cantidad=ls+1;
         
-        //El calculo de cantidad de eltos es correcto, se reserva mas memoria porque en secuencia_ids se incrementa en 1
-        //cant_variables por el identificador del arreglo.
-        System.out.println("\nEsta es la cantidad de eltos del arreglo : "+cantidad);
-        //Guardamos la cantidad de eltos del arreglo.
-        //this.cant_variables += cantidad;
-        //Configuramos el nuevo direccionamiento a partir de la longitud del arreglo.
-        //this.direccionamiento += cantidad-1;
-        
+        //Guardamos la cantidad de eltos del arreglo.        
         a.set_cantidad_elementos(cantidad);
         
     }
@@ -745,7 +738,7 @@ public class GeneradorCodigo {
             if(s instanceof Variable){
                 tipo_dato=((Variable)s).get_tipo_dato();
                 var=new Variable(this.direccionamiento, tipo_dato);
-                System.out.println("\nDireccionamiento "+lex+" --> "+this.direccionamiento);
+                //System.out.println("\nDireccionamiento "+lex+" --> "+this.direccionamiento);
                 if(tipo_dato instanceof Arreglo){
                     this.direccionamiento += ((Arreglo)tipo_dato).get_cantidad_elementos();
                     
@@ -795,19 +788,13 @@ public class GeneradorCodigo {
             case "boolean" : this.preanalisis++;
                              reg_principal.agregar_parametro(new Parametro(ids,new TipoDato("boolean",1,"boolean","primitivo")));
                              break;
-            case "("       : //this.preanalisis++;
-                             //ArrayList<String> cuerpo_enum=secuencia_ids();
-                             //match(")");
-                             //reg_principal.agregar_parametro(new Parametro(ids,new Estructurado("",new Enumeracion("",1,cuerpo_enum))));
+            case "("       : 
                              System.out.println("\nError Sintactico : *** No se admiten campos de tipo Enumeracion *** Linea "+token.get_linea_programa());
                              System.exit(1);
                              break;
             case "array"   : 
-                             //break;
-            case "record"  : //this.preanalisis++;
-                             //Registro reg_anidado=new Registro();
-                             //r(reg_anidado);
-                             //reg_principal.agregar_parametro(new Parametro(ids,new Estructurado("",reg_anidado)));
+                             
+            case "record"  : 
                              System.out.println("\nError Sintactico : *** No se admiten campos de tipo "+token.get_lexema()+" *** Linea "+token.get_linea_programa());
                              System.exit(1);
                              break;
@@ -818,20 +805,6 @@ public class GeneradorCodigo {
                       }
                       
                       if(digito(token)){
-//                          token=this.tokens_sintacticos.get(this.preanalisis);
-//                          String li=token.get_lexema();
-//                          this.preanalisis++;
-//                          match("..");
-//                          
-//                          if(digito(token)){
-//                              token=this.tokens_sintacticos.get(this.preanalisis);
-//                              String ls=token.get_lexema();
-//                              this.preanalisis++;
-//                              reg_principal.agregar_parametro(new Parametro(ids,new Estructurado("",new Subrango("",1,li,ls))));
-//                          }else{
-//                              System.out.println("Error Sintactico : *** ***");
-//                              System.exit(1);
-//                          }
                             System.out.println("\nError Sintactico : *** No se admiten campos de tipo Subrango *** Linea "+token.get_linea_programa());
                             System.exit(1);
                       }else{
@@ -1157,11 +1130,12 @@ public class GeneradorCodigo {
         
         //Reseteamos la cantidad de variables y el direccionamiento.
         this.cant_variables=0;
+        //Deberia incluir la variable cant_mem_estructurados que empiece en cero.
         this.direccionamiento=0;
         //Segmento de definiciones de variables, constantes y tipos.
         definicion(ts_local);
         //Guardamos la cantidad total de variables para liberar el espacio asignado despues de la ejecucion del subprograma actual.
-        lmem=this.cant_variables;
+        lmem=this.cant_variables;//Deberia sumar la variable cant_mem_estructurado.
         
         //Construimos la cadena estatica.
         ts_local.set_ts_superior(ts_superior);
@@ -1317,46 +1291,6 @@ public class GeneradorCodigo {
                                         }
                                 
                                         this.preanalisis++;
-//                                        token=this.tokens_sintacticos.get(this.preanalisis);
-//                                        
-//                                        int indice=0;
-//                                        if(digito(token)){
-//                                            this.preanalisis++;
-//                                            indice=Integer.parseInt(token.get_lexema());
-//                                            cod="APCT "+indice;
-//                                        }else
-//                                            if(identificador(token)){
-//                                                Simbolo s=this.obtener_valor(ts, token);
-//
-//                                                //--- Esquema de traduccion ---
-//                                                if(s == null){
-//                                                    System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
-//                                                    System.exit(1);
-//                                                }else{
-//                                                    if(s instanceof Variable){
-//                                                        TipoDato tipo_arreglo=(TipoDato) (((Variable)s).get_tipo_dato());
-//                                                        //El indice de un arreglo debe ser de tipo intero.
-//                                                        if(!tipo_arreglo.get_nombre_tipo().equalsIgnoreCase("integer")){
-//                                                            System.out.println("\nError Semantico : *** Tipos incompatibles, el identificador \""+token.get_lexema()+"\" debe ser de tipo integer *** Linea "+token.get_linea_programa());
-//                                                            System.exit(1);
-//                                                        }else{
-//                                                              //String dato=((Variable)s).get_dato();
-////                                                            if(dato.equalsIgnoreCase("")){
-////                                                                System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no ha sido inicializado *** Linea "+token.get_linea_programa());
-////                                                                System.exit(1);
-////                                                            }else{
-//                                                                //indice=Integer.parseInt(dato);
-//                                                                Variable v=(Variable)s;
-//                                                                //En la variable global queda el nivel lexico correcto.
-//                                                                cod="APVL "+this.nivel_lexico+", "+v.get_espacio_asignado();
-//                                                            //}
-//                                                        }
-//                                                    }else{
-//                                                         System.out.println("\nError Semantico : *** El indice \""+token.get_lexema()+"\" del arreglo \""+tk.get_lexema()+"\" debe estar definido como una VARIABLE ENTERA *** Linea "+token.get_linea_programa());
-//                                                         System.exit(1);
-//                                                    }
-//                                               }
-//                                            }
                                         
                                         Strings tipo_syn=new Strings("");
                                         Strings tipo_syn_cod=new Strings("");
@@ -1409,8 +1343,7 @@ public class GeneradorCodigo {
                                         argumento(ts, argumentos);
                                         
                                         //--- Esquema de traduccion ---
-                                        //simbolo=this.obtener_valor(ts, tk);
-//                                        if(simbolo != null){
+                                        
                                             if(simbolo instanceof Variable){//El lado izq. de una asignacion es una variable que puede ser un parametro formal o pertenecer a otro ambiente.
                                                 TipoDato tipo_dato=(TipoDato)((Variable)simbolo).get_tipo_dato();
                                                 Variable var2=((Variable)simbolo);
@@ -1491,21 +1424,11 @@ public class GeneradorCodigo {
                                                         }
                                                     }
                                             }
-//                                        }else{
-//                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se encuentra definido *** Linea "+tk.get_linea_programa());
-//                                            System.exit(1);
-//                                        }
                                                                                                                                                                 
                                         break;
                             case "("  : //--- Llamada a Subprograma ---
-                                        
                                         //--- En este punto debemos tener una llamada a un Procedimiento ---
-                                        //simbolo=this.obtener_valor(ts, tk);
-                                        //  Verificamos si el identificador se encuentra definido em la TS.
-//                                        if(simbolo == null){
-//                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se encuentra definido *** Linea "+tk.get_linea_programa());
-//                                            System.exit(1);
-//                                        }
+                                        
                                         //   Verificamos si el identificador se encuentra definido como Procedimiento.     
                                         if(!((simbolo instanceof Procedimiento))){//(simbolo instanceof Funcion)
                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" debe estar definido como PROCEDIMIENTO *** Linea "+tk.get_linea_programa());
@@ -1528,13 +1451,7 @@ public class GeneradorCodigo {
                                         match(")");
                                         
                                         token=this.tokens_sintacticos.get(this.preanalisis);
-                                        //Verificamos si un procedimiento no esta incluido en una expresion.
-                                        //Este error no tiene sentido porque estamos en presencia de una llamada a un procedimiento.
-//                                        if(!token.get_lexema().equalsIgnoreCase(";") && (simbolo instanceof Procedimiento)){
-//                                            System.out.println("\nError Semantico : *** No se puede utilizar un Procedimiento como operando en una expresion aritmetica, relacional o booleana *** linea "+tk.get_linea_programa());
-//                                            System.exit(1);
-//                                        }
-                                        
+                                                                                                                        
                                         //--- Codigo MEPA ---
                                         Simbolo subprograma=this.obtener_valor(ts, tk);
                                         if(subprograma instanceof Procedimiento)
@@ -1560,7 +1477,7 @@ public class GeneradorCodigo {
         expresion(ts, expresion_tipo, expresion_cod);
         
         this.codigo_mepa += expresion_cod.get_string();
-        //this.mepa.add(new ParMepa("",expresion_cod.get_string()));
+        
         etiqueta_if=this.generar_etiqueta();
         etiqueta_else=this.generar_etiqueta();
         
@@ -1662,34 +1579,10 @@ public class GeneradorCodigo {
         Strings expresion_tipo=new Strings("");
         Strings expresion_cod=new Strings("");
         Token token;
-//        Token token=this.tokens_sintacticos.get(this.preanalisis);
-//        
-//        if(digito(token))
-//            this.preanalisis++;
-//        else//podriamos usar expresion(ts, expresion_tipo)
-//            if(identificador(token)){
-//                
-//                //--- Esquema de traduccion ---
-//                Variable variable=(Variable)this.obtener_valor(ts, token);
-//                if(variable != null){
-//                    TipoDato tipo_dato=(TipoDato)variable.get_tipo_dato();
-//                    if(tipo_dato.get_nombre_tipo().equalsIgnoreCase("integer"))
-//                        seleccion_multiple="void";
-//                    else{
-//                        System.out.println("\nError Semantico : *** Tipos incompatibles, la estructura \"case\" requiere una expresion de tipo integer. Se encontro una expresion de tipo "+tipo_dato.get_nombre_tipo()+" *** Linea "+token.get_linea_programa());
-//                        System.exit(1);
-//                    }
-//                }else{
-//                    System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
-//                    System.exit(1);
-//                }
-//                
-//                this.preanalisis++;
-//            }
         
         expresion(ts, expresion_tipo, expresion_cod);
         
-        //--- ESquema de traduccion ---
+        //--- Esquema de traduccion ---
         if(expresion_tipo.get_string().equalsIgnoreCase("integer"))
             seleccion_multiple.set_string("void");
         else{
@@ -1725,8 +1618,7 @@ public class GeneradorCodigo {
     
     private void opcion (TablaSimbolos ts){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
-        //if(digito(token) || identificador(token))
-            //this.preanalisis++;
+        
         char c=token.get_lexema().charAt(0);
         if((((int)c >= 65 && (int)c <= 90) || ((int)c >= 97 && (int)c <= 122)) && !this.palabras_reservadas.contains(token.get_lexema()))
             this.preanalisis++;
@@ -1824,8 +1716,8 @@ public class GeneradorCodigo {
                 }
                 
                 //--- Codigo MEPA ---
-                this.mepa.add(new ParMepa("","ALVL "+ts.get_nivel_lexico()+", "+var.get_espacio_asignado()));
                 this.mepa.add(new ParMepa("","LEER"));
+                this.mepa.add(new ParMepa("","ALVL "+ts.get_nivel_lexico()+", "+var.get_espacio_asignado()));
             }else{
                 if(simbolo instanceof Constante){
                     System.out.println("\nError Semantico : *** No es posible modificar el contenido de una CONSTANTE en tiempo de ejecucion *** Linea "+token.get_linea_programa());
@@ -1881,7 +1773,7 @@ public class GeneradorCodigo {
         //--- Esquema de traduccion ---
         
         //--- Codigo MEPA ---
-        this.mepa.add(new ParMepa("","IMPR"));
+        this.mepa.add(new ParMepa("","IMLN"));
         
         match(")");
     }
@@ -1951,12 +1843,12 @@ public class GeneradorCodigo {
         switch(token.get_lexema()){
             //--- Constante Booleana ---
             case "true"    :
-            case "false"   : //this.preanalisis++;
+            case "false"   : 
                              Strings expresion_tipo_1=new Strings("");
                              Strings expresion_cod_1=new Strings("");
                              expresion(ts, expresion_tipo_1, expresion_cod_1);
                              argumentos.add(new Parametro("expresion compuesta", new TipoDato(expresion_tipo_1.get_string(),1,expresion_tipo_1.get_string(),"no se")));
-                             //argumentos.add(new Parametro(token.get_lexema(), new TipoDato("boolean",1,"boolean","primitivo")));
+                             
                              break;
             
             default : //exp();
@@ -1970,7 +1862,7 @@ public class GeneradorCodigo {
                       
                       //--- Codigo MEPA ---
                       this.codigo_mepa += expresion_cod.get_string();
-                      //this.mepa.add(new ParMepa("", expresion_cod.get_string()));
+                      
         }
     }
     
@@ -2005,14 +1897,12 @@ public class GeneradorCodigo {
         //--- Codigo MEPA ---
         if(e1_cod.get_string().equalsIgnoreCase("void")){
             expresion_cod.set_string(t_cod.get_string());
-            //this.mepa.add(new ParMepa("",t_cod.get_string()));
+            
         }else{
             expresion_cod.set_string(t_cod.get_string() +"\n"+ e1_cod.get_string());
-            //this.mepa.add(new ParMepa("",t_cod.get_string()));
-            //this.mepa.add(new ParMepa("",e1_cod.get_string()));
+            
         }
         
-        //System.out.println("En expresion se sintetitiza el tipo expresion_tipo : "+expresion_tipo.get_string());
     }
     
     private void T (TablaSimbolos ts, Strings t_tipo, Strings t_cod){
@@ -2040,14 +1930,12 @@ public class GeneradorCodigo {
         //--- Codigo MEPA ---
         if(t1_cod.get_string().equalsIgnoreCase("void")){
             t_cod.set_string(f_cod.get_string());
-            //this.mepa.add(new ParMepa("",f_cod.get_string()));
+            
         }else{
             t_cod.set_string(f_cod.get_string() +"\n"+ t1_cod.get_string());
-            //this.mepa.add(new ParMepa("",f_cod.get_string()));
-            //this.mepa.add(new ParMepa("",t1_cod.get_string()));
+            
         }
-        //System.out.println("En T, f_tipo : "+f_tipo.get_string()+" y t1_tipo : "+t1_tipo.get_string());
-        //System.out.println("En T, se sintetitiza el tipo t_tipo : "+t_tipo.get_string());
+        
     }
     
     private void F (TablaSimbolos ts, Strings f_tipo, Strings f_cod){
@@ -2068,7 +1956,7 @@ public class GeneradorCodigo {
             
             //--- Codigo MEPA ---
             f_cod.set_string(g_cod.get_string() +"\n"+ "NEGA");
-            //this.mepa.add(new ParMepa("",g_cod.get_string()));
+            
             this.mepa.add(new ParMepa("","NEGA"));
             
         }else{
@@ -2079,11 +1967,9 @@ public class GeneradorCodigo {
             
             //--- Codigo MEPA ---
             f_cod.set_string(g_cod.get_string());
-            //this.mepa.add(new ParMepa("",g_cod.get_string()));
+            
         }
         
-        //System.out.println("En F, el tipo g_tipo : "+g_tipo.get_string());
-        //System.out.println("En F, se sintetitiza el tipo f_tipo : "+f_tipo.get_string());
     }
     
     private void G (TablaSimbolos ts, Strings g_tipo, Strings g_cod){
@@ -2097,10 +1983,9 @@ public class GeneradorCodigo {
         Strings h_cod_bis=new Strings("");
         Strings g1_cod=new Strings("");
         
-        H(ts, h_tipo, h_cod);System.out.println("En G pasa esto, h_tipo despues de H es : "+h_tipo.get_string());
-        G1(ts, h_tipo_bis, g1_tipo, h_cod_bis, g1_cod);System.out.println("mientras que despues de G1 el valor de h_tipo_bis es : "+h_tipo_bis.get_string());
-        System.out.println("Y el valor de G1 es : "+g1_tipo.get_string());
-        //System.exit(1);
+        H(ts, h_tipo, h_cod);
+        G1(ts, h_tipo_bis, g1_tipo, h_cod_bis, g1_cod);
+        
         //--- Esquema de traduccion ---
         if(g1_tipo.get_string().equalsIgnoreCase("void"))
             g_tipo.set_string(h_tipo.get_string());
@@ -2115,15 +2000,12 @@ public class GeneradorCodigo {
         //--- Codigo MEPA ---
         if(g1_cod.get_string().equalsIgnoreCase("void")){
             g_cod.set_string(h_cod.get_string());
-            //this.mepa.add(new ParMepa("",h_cod.get_string()));
+            
         }else{
             g_cod.set_string(h_cod.get_string() +"\n"+ g1_cod.get_string());
-            //this.mepa.add(new ParMepa("",h_cod.get_string()));
-            //this.mepa.add(new ParMepa("",g1_cod.get_string()));
+            
         }
         
-        //System.out.println("En G, el tipo h_tipo : "+h_tipo.get_string()+" y g1_tipo : "+g1_tipo.get_string());
-        //System.out.println("En G, se sintetiza el tipo g_tipo : "+g_tipo.get_string()+" G1 es "+g1_tipo.get_string());
     }
     
     private void H (TablaSimbolos ts, Strings h_tipo, Strings h_cod){
@@ -2151,14 +2033,12 @@ public class GeneradorCodigo {
         //--- Codigo MEPA ---
         if(h1_cod.get_string().equalsIgnoreCase("void")){
             h_cod.set_string(i_cod.get_string());
-            //this.mepa.add(new ParMepa("",i_cod.get_string()));
+            
         }else{
             h_cod.set_string(i_cod.get_string() +"\n"+ h1_cod.get_string());
-            //this.mepa.add(new ParMepa("",i_cod.get_string()));
-            //this.mepa.add(new ParMepa("",h1_cod.get_string()));
+            
         }
-        //System.out.println("En H, el tipo i_tipo : "+i_tipo.get_string()+" y h1_tipo : "+h1_tipo.get_string());
-        //System.out.println("En H, se sintetitiza el tipo h_tipo : "+h_tipo.get_string());
+        
     }
     
     private void I (TablaSimbolos ts, Strings i_tipo, Strings i_cod){
@@ -2189,12 +2069,9 @@ public class GeneradorCodigo {
             //this.mepa.add(new ParMepa("",j_cod.get_string()));
         }else{
             i_cod.set_string(j_cod.get_string() +"\n"+ i1_cod.get_string());
-            //this.mepa.add(new ParMepa("",j_cod.get_string()));
-            //this.mepa.add(new ParMepa("",i1_cod.get_string()));
+            
         }
         
-        //System.out.println("En I, el tipo j_tipo : "+j_tipo.get_string()+" y i1_tipo : "+i1_tipo.get_string());
-        //System.out.println("En I, se sintetitiza el tipo i_tipo : "+i_tipo.get_string());
     }
     
     private void J (TablaSimbolos ts, Strings j_tipo, Strings j_cod){
@@ -2232,8 +2109,6 @@ public class GeneradorCodigo {
             this.mepa.add(new ParMepa("",k_cod.get_string()));
         }
         
-        //System.out.println("En J, el tipo k_tipo : "+k_tipo.get_string());
-        //System.out.println("En J, se sintetitiza el tipo j_tipo : "+j_tipo.get_string());
     }
     
     private void I1 (TablaSimbolos ts, Strings j_tipo, Strings i1_tipo, Strings j_cod, Strings i1_cod){
@@ -2242,11 +2117,11 @@ public class GeneradorCodigo {
         switch(token.get_lexema()){
             case "*" :
             case "/" : this.preanalisis++;
-                       J(ts, j_tipo, j_cod);System.out.println("\nEn I1, despues de J, j_tipo es : "+j_tipo.get_string());
+                       J(ts, j_tipo, j_cod);
                        
                        this.mepa.add(new ParMepa("",this.get_inst(token)));
                        
-                       I1(ts, j_tipo, i1_tipo, j_cod, i1_cod);System.out.println("\nEn I1, despues de I1, j_tipo_bis es : "+j_tipo.get_string());
+                       I1(ts, j_tipo, i1_tipo, j_cod, i1_cod);
                        
                        //--- Esquema de traduccion ---
                        if(i1_tipo.get_string().equalsIgnoreCase("void")){
@@ -2271,13 +2146,10 @@ public class GeneradorCodigo {
                        //--- Codigo MEPA ---
                        if(i1_cod.get_string().equalsIgnoreCase("void")){
                            i1_cod.set_string(j_cod.get_string() +"\n"+ this.get_inst(token));
-                           //this.mepa.add(new ParMepa("",j_cod.get_string()));
-                           //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                           
                        }else{
                            i1_cod.set_string(j_cod.get_string() +"\n"+ i1_cod.get_string());
-                           //this.mepa.add(new ParMepa("",j_cod.get_string()));
-                           //this.mepa.add(new ParMepa("",i1_cod.get_string()));
-                           //this.mepa.add(new ParMepa("",this.get_inst(token))); //Tenemos un MULT-DIVI consecutivo en el archivo mepa.
+                           
                        }
                        
                        break;
@@ -2286,8 +2158,6 @@ public class GeneradorCodigo {
                       i1_cod.set_string("void");
         }
         
-        //System.out.println("En I1, el tipo j_tipo : "+j_tipo.get_string());
-        //System.out.println("En I1, se sintetitiza el tipo i1_tipo : "+i1_tipo.get_string());
     }
     
     private void H1 (TablaSimbolos ts, Strings i_tipo, Strings h1_tipo, Strings i_cod, Strings h1_cod){
@@ -2295,11 +2165,11 @@ public class GeneradorCodigo {
         switch(token.get_lexema()){
             case "+" :
             case "-" : this.preanalisis++;
-                       I(ts, i_tipo, i_cod);System.out.println("\nEn H1, despues de I, i_tipo es : "+i_tipo.get_string());
+                       I(ts, i_tipo, i_cod);
                        
                        this.mepa.add(new ParMepa("",this.get_inst(token)));
                        
-                       H1(ts, i_tipo, h1_tipo, i_cod, h1_cod);System.out.println("\nEn H1, despues de H1, i_tipo es : "+i_tipo.get_string());
+                       H1(ts, i_tipo, h1_tipo, i_cod, h1_cod);
                        
                        //--- Esquema de traduccion ---
                        if(h1_tipo.get_string().equalsIgnoreCase("void")){
@@ -2314,13 +2184,10 @@ public class GeneradorCodigo {
                        //--- Codigo MEPA ---
                        if(h1_cod.get_string().equalsIgnoreCase("void")){
                            h1_cod.set_string(i_cod.get_string() +"\n"+ this.get_inst(token));
-                           //this.mepa.add(new ParMepa("",i_cod.get_string()));
-                           //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                           
                        }else{
                            h1_cod.set_string(i_cod.get_string() +"\n"+ h1_cod.get_string() + "\n" + this.get_inst(token));
-                           //this.mepa.add(new ParMepa("",i_cod.get_string()));
-                           //this.mepa.add(new ParMepa("",h1_cod.get_string()));
-                           //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                           
                        }
                        break;
             default : //; //Presencia de cadena nula.
@@ -2329,8 +2196,6 @@ public class GeneradorCodigo {
                       h1_cod.set_string("void");
         }
         
-        //System.out.println("En H1, el tipo i_tipo : "+i_tipo.get_string());
-        //System.out.println("En H1, se sintetitiza el tipo h1_tipo : "+h1_tipo.get_string());
     }
     
     private void G1 (TablaSimbolos ts, Strings h_tipo, Strings g1_tipo, Strings h_cod, Strings g1_cod){
@@ -2342,11 +2207,11 @@ public class GeneradorCodigo {
             case "<=" :
             case "="  :
             case "<>" : this.preanalisis++;
-                        H(ts, h_tipo, h_cod);System.out.println("\nEn G1, despues de H, h_tipo es : "+h_tipo.get_string());
+                        H(ts, h_tipo, h_cod);
                         
                         this.mepa.add(new ParMepa("",this.get_inst(token)));
                         
-                        G1(ts, h_tipo, g1_tipo, h_cod, g1_cod);System.out.println("\nEn G1, despues de G1, h_tipo es : "+h_tipo.get_string());
+                        G1(ts, h_tipo, g1_tipo, h_cod, g1_cod);
                         
                         //--- Esquema de traduccion ---
                         if(g1_tipo.get_string().equalsIgnoreCase("void")){
@@ -2362,13 +2227,10 @@ public class GeneradorCodigo {
                         //--- Codigo MEPA ---
                         if(g1_cod.get_string().equalsIgnoreCase("void")){
                             g1_cod.set_string(h_cod.get_string() +"\n"+ this.get_inst(token));
-                            //this.mepa.add(new ParMepa("",h_cod.get_string()));
-                            //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                            
                         }else{
                             g1_cod.set_string(h_cod.get_string() +"\n"+ g1_cod.get_string() + "\n" + this.get_inst(token));
-                            //this.mepa.add(new ParMepa("",h_cod.get_string()));
-                            //this.mepa.add(new ParMepa("",g1_cod.get_string()));
-                            //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                            
                         }
                         break;
             default : //; //Presencia de cadena nula.
@@ -2378,19 +2240,17 @@ public class GeneradorCodigo {
                       g1_cod.set_string("void");
         }
         
-        //System.out.println("En G1, el tipo h_tipo : "+h_tipo.get_string());
-        //System.out.println("En G1, se sintetitiza el tipo g1_tipo : "+g1_tipo.get_string());
     }
     
     private void T1 (TablaSimbolos ts, Strings f_tipo, Strings t1_tipo, Strings f_cod, Strings t1_cod){
         Token token=this.tokens_sintacticos.get(this.preanalisis);
         if(token.get_lexema().equalsIgnoreCase("and")){
             this.preanalisis++;
-            F(ts, f_tipo, f_cod);System.out.println("\nEn T1, despues de F, f_tipo es : "+f_tipo.get_string());
+            F(ts, f_tipo, f_cod);
             
             this.mepa.add(new ParMepa("","CONJ"));
             
-            T1(ts, f_tipo, t1_tipo, f_cod, t1_cod);System.out.println("\nEn T1, despues de T1, f_tipo es : "+f_tipo.get_string());
+            T1(ts, f_tipo, t1_tipo, f_cod, t1_cod);
             
             //--- Esquema de traduccion ---
             if(t1_tipo.get_string().equalsIgnoreCase("void")){
@@ -2405,21 +2265,17 @@ public class GeneradorCodigo {
             //--- Codigo MEPA ---
             if(t1_cod.get_string().equalsIgnoreCase("void")){
                 t1_cod.set_string(f_cod.get_string() + "\n" + "CONJ");
-                //this.mepa.add(new ParMepa("",f_cod.get_string()));
-                //this.mepa.add(new ParMepa("","CONJ"));
+                
             }else{
                 t1_cod.set_string(f_cod.get_string() + "\n" + t1_cod.get_string() + "\n" + this.get_inst(token));
-                //this.mepa.add(new ParMepa("",f_cod.get_string()));
-                //this.mepa.add(new ParMepa("",t1_cod.get_string()));
-                //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                
             }
             
         }else{//; //Presencia de cadena nula.
             t1_tipo.set_string("void");
             t1_cod.set_string("void");
         }
-        //System.out.println("En T1, el tipo f_tipo : "+f_tipo.get_string());
-        //System.out.println("En T1, se sintetitiza el tipo t1_tipo : "+t1_tipo.get_string());
+        
     }
     
     private void E1 (TablaSimbolos ts, Strings e1_tipo, Strings e1_cod){
@@ -2447,13 +2303,10 @@ public class GeneradorCodigo {
             //--- Codigo MEPA ---
             if(e1_cod.get_string().equalsIgnoreCase("void")){
                 e1_cod.set_string(t_cod.get_string() + "\n" + "DISJ");
-                //this.mepa.add(new ParMepa("",t_cod.get_string()));
-                //this.mepa.add(new ParMepa("","DISJ"));
+                
             }else{
                 e1_cod.set_string(t_cod.get_string() + "\n" + e1_cod.get_string() + "\n" + "DISJ");
-                //this.mepa.add(new ParMepa("",t_cod.get_string()));
-                //this.mepa.add(new ParMepa("",e1_cod.get_string()));
-                //this.mepa.add(new ParMepa("","DISJ"));
+                
             }
             
         }else{
@@ -2464,8 +2317,6 @@ public class GeneradorCodigo {
             e1_cod.set_string("void");
         }
         
-        //System.out.println("En E1, el tipo t_tipo : "+t_tipo.get_string());
-        //System.out.println("En E1, se sintetitiza el tipo e1_tipo : "+e1_tipo.get_string());
     }
     
     private void K (TablaSimbolos ts, Strings k_tipo, Strings k_cod){
@@ -2623,45 +2474,6 @@ public class GeneradorCodigo {
                                                    }
 
                                                    this.preanalisis++;
-//                                                   token=this.tokens_sintacticos.get(this.preanalisis);
-//
-//                                                   int indice=0;
-//                                                   if(digito(token)){
-//                                                       this.preanalisis++;
-//                                                       indice=Integer.parseInt(token.get_lexema());
-//                                                       this.mepa.add(new ParMepa("","APCT "+indice));
-//                                                   }else{
-//                                                       if(identificador(token)){
-//                                                           this.preanalisis++;
-//
-//                                                           Simbolo s=this.obtener_valor(ts, token);
-//
-//                                                           //--- Esquema de traduccion ---
-//                                                           if(s == null){
-//                                                               System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
-//                                                               System.exit(1);
-//                                                           }else{
-//                                                               if(s instanceof Variable){
-//                                                                   TipoDato tipo=(TipoDato) (((Variable)s).get_tipo_dato());
-//                                                                   if(!tipo.get_nombre_tipo().equalsIgnoreCase("integer")){
-//                                                                       System.out.println("\nError Semantico : *** Tipos incompatibles, el identificador \""+token.get_lexema()+"\" debe ser de tipo integer *** Linea "+token.get_linea_programa());
-//                                                                       System.exit(1);
-//                                                                   }else{
-////                                                                       String dato=((Variable)s).get_dato();
-////                                                                       if(dato.equalsIgnoreCase("")){
-////                                                                           System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no ha sido inicializado *** Linea "+token.get_linea_programa());
-////                                                                           System.exit(1);
-////                                                                       }else
-////                                                                           indice=Integer.parseInt(dato);
-//                                                                         this.mepa.add(new ParMepa("","APVL "+this.nivel_lexico+", "+((Variable)s).get_espacio_asignado()));
-//                                                                   }
-//                                                               }else{
-//                                                                    System.out.println("\nError Semantico : *** El indice \""+token.get_lexema()+"\" del arreglo \""+id.get_lexema()+"\" debe estar definido como una VARIABLE ENTERA *** Linea "+token.get_linea_programa());
-//                                                                    System.exit(1);
-//                                                               }
-//                                                           }
-//                                                       }
-//                                                   }
                                                    Strings tipo_syn=new Strings("");
                                                    Strings tipo_syn_cod=new Strings("");
                                                    expresion(ts, tipo_syn, tipo_syn_cod);
@@ -2692,7 +2504,7 @@ public class GeneradorCodigo {
                                                    break;
                                         default : //; //Solamente tenemos un identificador.
                                                   if(simbolo instanceof Variable){
-                                                      System.out.println("\nESTA ES LA VARIABLE QUE GENERA PROBLEMAS "+id.get_lexema());
+                                                      //System.out.println("\nESTA ES LA VARIABLE QUE GENERA PROBLEMAS "+id.get_lexema());
                                                       //Aca hay que solucionar problemas de casteor entre TIPODATO y ARREGLO; REGISTRO ETC
                                                       TipoDato tipo=(TipoDato)((Variable)simbolo).get_tipo_dato();
                                                       Variable var=((Variable)simbolo);
@@ -2717,7 +2529,7 @@ public class GeneradorCodigo {
                                                                   }else{
                                                                       desplazamiento=((Funcion)subprograma).calcular_desplazamiento(id);
                                                                   }
-                                                                  System.out.println("\nEste es el valor de desplazamiento : "+desplazamiento);
+                                                                  //System.out.println("\nEste es el valor de desplazamiento : "+desplazamiento);
                                                                   k_cod.set_string("APVL "+this.nivel_lexico+", "+desplazamiento);
                                                               }
                                                           }else
@@ -2820,14 +2632,13 @@ public class GeneradorCodigo {
         //--- Codigo MEPA ---
         if(e1_cod.get_string().equalsIgnoreCase("void")){
             expresion_cod.set_string(t_cod.get_string());
-            //this.mepa.add(new ParMepa("",t_cod.get_string()));
+            
         }else{
             expresion_cod.set_string(t_cod.get_string() +"\n"+ e1_cod.get_string());
-            //this.mepa.add(new ParMepa("",t_cod.get_string()));
-            //this.mepa.add(new ParMepa("",e1_cod.get_string()));
+            
         }
         
-        //System.out.println("En expresion se sintetitiza el tipo expresion_tipo : "+expresion_tipo.get_string());
+        
     }
     
     private void T (TablaSimbolos ts, Strings t_tipo, Strings t_cod,ArrayList<ParMepa> mepa){
@@ -2855,14 +2666,12 @@ public class GeneradorCodigo {
         //--- Codigo MEPA ---
         if(t1_cod.get_string().equalsIgnoreCase("void")){
             t_cod.set_string(f_cod.get_string());
-            //this.mepa.add(new ParMepa("",f_cod.get_string()));
+            
         }else{
             t_cod.set_string(f_cod.get_string() +"\n"+ t1_cod.get_string());
-            //this.mepa.add(new ParMepa("",f_cod.get_string()));
-            //this.mepa.add(new ParMepa("",t1_cod.get_string()));
+            
         }
-        //System.out.println("En T, f_tipo : "+f_tipo.get_string()+" y t1_tipo : "+t1_tipo.get_string());
-        //System.out.println("En T, se sintetitiza el tipo t_tipo : "+t_tipo.get_string());
+        
     }
     
     private void F (TablaSimbolos ts, Strings f_tipo, Strings f_cod,ArrayList<ParMepa> mepa){
@@ -2883,7 +2692,7 @@ public class GeneradorCodigo {
             
             //--- Codigo MEPA ---
             f_cod.set_string(g_cod.get_string() +"\n"+ "NEGA");
-            //this.mepa.add(new ParMepa("",g_cod.get_string()));
+            
             mepa.add(new ParMepa("","NEGA"));
             
         }else{
@@ -2894,11 +2703,9 @@ public class GeneradorCodigo {
             
             //--- Codigo MEPA ---
             f_cod.set_string(g_cod.get_string());
-            //this.mepa.add(new ParMepa("",g_cod.get_string()));
+            
         }
         
-        //System.out.println("En F, el tipo g_tipo : "+g_tipo.get_string());
-        //System.out.println("En F, se sintetitiza el tipo f_tipo : "+f_tipo.get_string());
     }
     
     private void G (TablaSimbolos ts, Strings g_tipo, Strings g_cod, ArrayList<ParMepa> mepa){
@@ -2915,7 +2722,7 @@ public class GeneradorCodigo {
         H(ts, h_tipo, h_cod,mepa);
         G1(ts, h_tipo_bis, g1_tipo, h_cod_bis, g1_cod,mepa);
         
-        //System.exit(1);
+        
         //--- Esquema de traduccion ---
         if(g1_tipo.get_string().equalsIgnoreCase("void"))
             g_tipo.set_string(h_tipo.get_string());
@@ -2930,15 +2737,12 @@ public class GeneradorCodigo {
         //--- Codigo MEPA ---
         if(g1_cod.get_string().equalsIgnoreCase("void")){
             g_cod.set_string(h_cod.get_string());
-            //this.mepa.add(new ParMepa("",h_cod.get_string()));
+            
         }else{
             g_cod.set_string(h_cod.get_string() +"\n"+ g1_cod.get_string());
-            //this.mepa.add(new ParMepa("",h_cod.get_string()));
-            //this.mepa.add(new ParMepa("",g1_cod.get_string()));
+            
         }
         
-        //System.out.println("En G, el tipo h_tipo : "+h_tipo.get_string()+" y g1_tipo : "+g1_tipo.get_string());
-        //System.out.println("En G, se sintetiza el tipo g_tipo : "+g_tipo.get_string()+" G1 es "+g1_tipo.get_string());
     }
     
     private void H (TablaSimbolos ts, Strings h_tipo, Strings h_cod,ArrayList<ParMepa> mepa){
@@ -2966,14 +2770,12 @@ public class GeneradorCodigo {
         //--- Codigo MEPA ---
         if(h1_cod.get_string().equalsIgnoreCase("void")){
             h_cod.set_string(i_cod.get_string());
-            //this.mepa.add(new ParMepa("",i_cod.get_string()));
+            
         }else{
             h_cod.set_string(i_cod.get_string() +"\n"+ h1_cod.get_string());
-            //this.mepa.add(new ParMepa("",i_cod.get_string()));
-            //this.mepa.add(new ParMepa("",h1_cod.get_string()));
+            
         }
-        //System.out.println("En H, el tipo i_tipo : "+i_tipo.get_string()+" y h1_tipo : "+h1_tipo.get_string());
-        //System.out.println("En H, se sintetitiza el tipo h_tipo : "+h_tipo.get_string());
+        
     }
     
     private void I (TablaSimbolos ts, Strings i_tipo, Strings i_cod,ArrayList<ParMepa> mepa){
@@ -3001,15 +2803,12 @@ public class GeneradorCodigo {
         //--- Codigo MEPA ---
         if(i1_cod.get_string().equalsIgnoreCase("void")){
             i_cod.set_string(j_cod.get_string());
-            //this.mepa.add(new ParMepa("",j_cod.get_string()));
+            
         }else{
             i_cod.set_string(j_cod.get_string() +"\n"+ i1_cod.get_string());
-            //this.mepa.add(new ParMepa("",j_cod.get_string()));
-            //this.mepa.add(new ParMepa("",i1_cod.get_string()));
+            
         }
         
-        //System.out.println("En I, el tipo j_tipo : "+j_tipo.get_string()+" y i1_tipo : "+i1_tipo.get_string());
-        //System.out.println("En I, se sintetitiza el tipo i_tipo : "+i_tipo.get_string());
     }
     
     private void J (TablaSimbolos ts, Strings j_tipo, Strings j_cod,ArrayList<ParMepa> mepa){
@@ -3047,8 +2846,6 @@ public class GeneradorCodigo {
             mepa.add(new ParMepa("",k_cod.get_string()));
         }
         
-        //System.out.println("En J, el tipo k_tipo : "+k_tipo.get_string());
-        //System.out.println("En J, se sintetitiza el tipo j_tipo : "+j_tipo.get_string());
     }
     
     private void I1 (TablaSimbolos ts, Strings j_tipo, Strings i1_tipo, Strings j_cod, Strings i1_cod,ArrayList<ParMepa> mepa){
@@ -3086,13 +2883,10 @@ public class GeneradorCodigo {
                        //--- Codigo MEPA ---
                        if(i1_cod.get_string().equalsIgnoreCase("void")){
                            i1_cod.set_string(j_cod.get_string() +"\n"+ this.get_inst(token));
-                           //this.mepa.add(new ParMepa("",j_cod.get_string()));
-                           //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                           
                        }else{
                            i1_cod.set_string(j_cod.get_string() +"\n"+ i1_cod.get_string());
-                           //this.mepa.add(new ParMepa("",j_cod.get_string()));
-                           //this.mepa.add(new ParMepa("",i1_cod.get_string()));
-                           //this.mepa.add(new ParMepa("",this.get_inst(token))); //Tenemos un MULT-DIVI consecutivo en el archivo mepa.
+                           
                        }
                        
                        break;
@@ -3101,8 +2895,6 @@ public class GeneradorCodigo {
                       i1_cod.set_string("void");
         }
         
-        //System.out.println("En I1, el tipo j_tipo : "+j_tipo.get_string());
-        //System.out.println("En I1, se sintetitiza el tipo i1_tipo : "+i1_tipo.get_string());
     }
     
     private void H1 (TablaSimbolos ts, Strings i_tipo, Strings h1_tipo, Strings i_cod, Strings h1_cod,ArrayList<ParMepa> mepa){
@@ -3129,13 +2921,10 @@ public class GeneradorCodigo {
                        //--- Codigo MEPA ---
                        if(h1_cod.get_string().equalsIgnoreCase("void")){
                            h1_cod.set_string(i_cod.get_string() +"\n"+ this.get_inst(token));
-                           //this.mepa.add(new ParMepa("",i_cod.get_string()));
-                           //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                           
                        }else{
                            h1_cod.set_string(i_cod.get_string() +"\n"+ h1_cod.get_string() + "\n" + this.get_inst(token));
-                           //this.mepa.add(new ParMepa("",i_cod.get_string()));
-                           //this.mepa.add(new ParMepa("",h1_cod.get_string()));
-                           //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                           
                        }
                        break;
             default : //; //Presencia de cadena nula.
@@ -3144,8 +2933,6 @@ public class GeneradorCodigo {
                       h1_cod.set_string("void");
         }
         
-        //System.out.println("En H1, el tipo i_tipo : "+i_tipo.get_string());
-        //System.out.println("En H1, se sintetitiza el tipo h1_tipo : "+h1_tipo.get_string());
     }
     
     private void G1 (TablaSimbolos ts, Strings h_tipo, Strings g1_tipo, Strings h_cod, Strings g1_cod,ArrayList<ParMepa> mepa){
@@ -3177,13 +2964,10 @@ public class GeneradorCodigo {
                         //--- Codigo MEPA ---
                         if(g1_cod.get_string().equalsIgnoreCase("void")){
                             g1_cod.set_string(h_cod.get_string() +"\n"+ this.get_inst(token));
-                            //this.mepa.add(new ParMepa("",h_cod.get_string()));
-                            //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                            
                         }else{
                             g1_cod.set_string(h_cod.get_string() +"\n"+ g1_cod.get_string() + "\n" + this.get_inst(token));
-                            //this.mepa.add(new ParMepa("",h_cod.get_string()));
-                            //this.mepa.add(new ParMepa("",g1_cod.get_string()));
-                            //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                            
                         }
                         break;
             default : //; //Presencia de cadena nula.
@@ -3193,8 +2977,6 @@ public class GeneradorCodigo {
                       g1_cod.set_string("void");
         }
         
-        //System.out.println("En G1, el tipo h_tipo : "+h_tipo.get_string());
-        //System.out.println("En G1, se sintetitiza el tipo g1_tipo : "+g1_tipo.get_string());
     }
     
     private void T1 (TablaSimbolos ts, Strings f_tipo, Strings t1_tipo, Strings f_cod, Strings t1_cod,ArrayList<ParMepa> mepa){
@@ -3220,21 +3002,17 @@ public class GeneradorCodigo {
             //--- Codigo MEPA ---
             if(t1_cod.get_string().equalsIgnoreCase("void")){
                 t1_cod.set_string(f_cod.get_string() + "\n" + "CONJ");
-                //this.mepa.add(new ParMepa("",f_cod.get_string()));
-                //this.mepa.add(new ParMepa("","CONJ"));
+                
             }else{
                 t1_cod.set_string(f_cod.get_string() + "\n" + t1_cod.get_string() + "\n" + this.get_inst(token));
-                //this.mepa.add(new ParMepa("",f_cod.get_string()));
-                //this.mepa.add(new ParMepa("",t1_cod.get_string()));
-                //this.mepa.add(new ParMepa("",this.get_inst(token)));
+                
             }
             
         }else{//; //Presencia de cadena nula.
             t1_tipo.set_string("void");
             t1_cod.set_string("void");
         }
-        //System.out.println("En T1, el tipo f_tipo : "+f_tipo.get_string());
-        //System.out.println("En T1, se sintetitiza el tipo t1_tipo : "+t1_tipo.get_string());
+        
     }
     
     private void E1 (TablaSimbolos ts, Strings e1_tipo, Strings e1_cod,ArrayList<ParMepa> mepa){
@@ -3262,13 +3040,10 @@ public class GeneradorCodigo {
             //--- Codigo MEPA ---
             if(e1_cod.get_string().equalsIgnoreCase("void")){
                 e1_cod.set_string(t_cod.get_string() + "\n" + "DISJ");
-                //this.mepa.add(new ParMepa("",t_cod.get_string()));
-                //this.mepa.add(new ParMepa("","DISJ"));
+                
             }else{
                 e1_cod.set_string(t_cod.get_string() + "\n" + e1_cod.get_string() + "\n" + "DISJ");
-                //this.mepa.add(new ParMepa("",t_cod.get_string()));
-                //this.mepa.add(new ParMepa("",e1_cod.get_string()));
-                //this.mepa.add(new ParMepa("","DISJ"));
+                
             }
             
         }else{
@@ -3279,8 +3054,6 @@ public class GeneradorCodigo {
             e1_cod.set_string("void");
         }
         
-        //System.out.println("En E1, el tipo t_tipo : "+t_tipo.get_string());
-        //System.out.println("En E1, se sintetitiza el tipo e1_tipo : "+e1_tipo.get_string());
     }
     
     private void K (TablaSimbolos ts, Strings k_tipo, Strings k_cod,ArrayList<ParMepa> mepa){
@@ -3296,7 +3069,7 @@ public class GeneradorCodigo {
             expresion(ts, tipo_syn, tipo_syn_cod);
             //  Sintetizamos el tipo de expresion.
             k_tipo.set_string(tipo_syn.get_string());
-            //System.out.println("\n contenido de k_tipo en exp "+k_tipo.get_string());
+            
             match(")");
         }else{
             if(digito(token)){
@@ -3376,16 +3149,11 @@ public class GeneradorCodigo {
                                                      //   Verificamos cantidad y tipos de parametros para una Funcion o Procedimiento.
                                                      if(simbolo instanceof Funcion)
                                                          k_tipo.set_string(((Funcion) simbolo).chequeo_de_tipos(id, argumentos));
-                                                     //else
-                                                         //k_tipo.set_string(((Procedimiento) simbolo).chequeo_de_tipos(id, argumentos));
-
+                                                     
                                                      match(")");
 
                                                      token=this.tokens_sintacticos.get(this.preanalisis);
-                                                     //Verificamos si un procedimiento no esta incluido en una expresion.
-                                                     //if(!token.get_lexema().equalsIgnoreCase(";") && (simbolo instanceof Procedimiento)){
-                                                         
-                                                     //}
+                                                     
                                                      //--- Codigo MEPA ---
                                                      Simbolo funcion=this.obtener_valor(ts, id);
                                                      if(funcion instanceof Funcion)
@@ -3438,45 +3206,7 @@ public class GeneradorCodigo {
                                                    }
 
                                                    this.preanalisis++;
-//                                                   token=this.tokens_sintacticos.get(this.preanalisis);
-//
-//                                                   int indice=0;
-//                                                   if(digito(token)){
-//                                                       this.preanalisis++;
-//                                                       indice=Integer.parseInt(token.get_lexema());
-//                                                       this.mepa.add(new ParMepa("","APCT "+indice));
-//                                                   }else{
-//                                                       if(identificador(token)){
-//                                                           this.preanalisis++;
-//
-//                                                           Simbolo s=this.obtener_valor(ts, token);
-//
-//                                                           //--- Esquema de traduccion ---
-//                                                           if(s == null){
-//                                                               System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no se encuentra definido *** Linea "+token.get_linea_programa());
-//                                                               System.exit(1);
-//                                                           }else{
-//                                                               if(s instanceof Variable){
-//                                                                   TipoDato tipo=(TipoDato) (((Variable)s).get_tipo_dato());
-//                                                                   if(!tipo.get_nombre_tipo().equalsIgnoreCase("integer")){
-//                                                                       System.out.println("\nError Semantico : *** Tipos incompatibles, el identificador \""+token.get_lexema()+"\" debe ser de tipo integer *** Linea "+token.get_linea_programa());
-//                                                                       System.exit(1);
-//                                                                   }else{
-////                                                                       String dato=((Variable)s).get_dato();
-////                                                                       if(dato.equalsIgnoreCase("")){
-////                                                                           System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" no ha sido inicializado *** Linea "+token.get_linea_programa());
-////                                                                           System.exit(1);
-////                                                                       }else
-////                                                                           indice=Integer.parseInt(dato);
-//                                                                         this.mepa.add(new ParMepa("","APVL "+this.nivel_lexico+", "+((Variable)s).get_espacio_asignado()));
-//                                                                   }
-//                                                               }else{
-//                                                                    System.out.println("\nError Semantico : *** El indice \""+token.get_lexema()+"\" del arreglo \""+id.get_lexema()+"\" debe estar definido como una VARIABLE ENTERA *** Linea "+token.get_linea_programa());
-//                                                                    System.exit(1);
-//                                                               }
-//                                                           }
-//                                                       }
-//                                                   }
+                                                                                                      
                                                    Strings tipo_syn=new Strings("");
                                                    Strings tipo_syn_cod=new Strings("");
                                                    expresion(ts, tipo_syn, tipo_syn_cod);
@@ -3507,7 +3237,7 @@ public class GeneradorCodigo {
                                                    break;
                                         default : //; //Solamente tenemos un identificador.
                                                   if(simbolo instanceof Variable){
-                                                      System.out.println("\nESTA ES LA VARIABLE QUE GENERA PROBLEMAS "+id.get_lexema());
+                                                      //System.out.println("\nESTA ES LA VARIABLE QUE GENERA PROBLEMAS "+id.get_lexema());
                                                       //Aca hay que solucionar problemas de casteor entre TIPODATO y ARREGLO; REGISTRO ETC
                                                       TipoDato tipo=(TipoDato)((Variable)simbolo).get_tipo_dato();
                                                       Variable var=((Variable)simbolo);
@@ -3532,7 +3262,7 @@ public class GeneradorCodigo {
                                                                   }else{
                                                                       desplazamiento=((Funcion)subprograma).calcular_desplazamiento(id);
                                                                   }
-                                                                  System.out.println("\nEste es el valor de desplazamiento : "+desplazamiento);
+                                                                  //System.out.println("\nEste es el valor de desplazamiento : "+desplazamiento);
                                                                   k_cod.set_string("APVL "+this.nivel_lexico+", "+desplazamiento);
                                                               }
                                                           }else
