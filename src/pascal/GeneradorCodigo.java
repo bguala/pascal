@@ -1246,14 +1246,30 @@ public class GeneradorCodigo {
                             case "."  : //--- Acceso a registro, en el lado izq. de una asignacion ---
                                         this.preanalisis++;
                                         token=this.tokens_sintacticos.get(this.preanalisis);
+                                                                                
+                                        //Verificamos si el nombre referenciado por tk se corresponde con una variable de tipo registro.
+                                        if(!(simbolo instanceof Variable)){
+                                            System.out.println("\nError Semantico : *** El identificador \""+tk.get_lexema()+"\" no se corresponde con una definicion de REGISTRO *** Linea "+tk.get_linea_programa());
+                                            System.exit(1);
+                                        }
                                         
+                                        Simbolo tipo_reg=((Variable)simbolo).get_tipo_dato();
+                                        //Significa que estamos en presencia de un tipo definido por el usuario.
+                                        if(tipo_reg instanceof TipoDato){
+                                            String id_reg=((TipoDato)tipo_reg).get_nombre_tipo();
+                                            tipo_reg=this.obtener_valor(ts, new Token(id_reg));
+                                        }
                                         
-                                        //Verificamos si el nombre referenciado por tk se corresponde con un registro.
-                                        
+                                        if(!(tipo_reg instanceof Registro)){
+                                            System.out.println("\nError Semantico : *** El tipo de dato asociado al identificador \""+tk.get_lexema()+"\" no se corresponde con un REGISTRO *** Linea "+tk.get_linea_programa());
+                                            System.exit(1);
+                                        }
+                                                                                                                     
                                         if(identificador(token))
                                             this.preanalisis++;
                                         
                                         //Verificamos si el nombre referenciado por token se corresponde con un campo del registro.
+                                        String tipo_dato_registro=((Registro)tipo_reg).chequeo_de_tipos(tk, token);
                                         
                                         match(":=");
                                         
@@ -2086,13 +2102,13 @@ public class GeneradorCodigo {
             if(k_tipo.get_string().equalsIgnoreCase("integer"))
                 j_tipo.set_string("integer");
             else{
-                if(k_tipo.get_string().equalsIgnoreCase("boolean"))
-                    j_tipo.set_string("boolean");
-                else{
+//                if(k_tipo.get_string().equalsIgnoreCase("boolean"))
+//                    j_tipo.set_string("boolean");
+                //else{
                     token=this.tokens_sintacticos.get(this.preanalisis);
                     System.out.println("\nError Semantico : *** El identificador \""+token.get_lexema()+"\" debe ser de tipo integer o boolean *** Linea "+token.get_linea_programa());
                     System.exit(1);
-                }
+                //}
             }
             
             //--- Codigo MEPA ---

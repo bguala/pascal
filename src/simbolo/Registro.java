@@ -111,7 +111,15 @@ public class Registro extends Simbolo {
             i++;
         }
         
+        //El campo de un registro solamente puede ser integer o boolean. Estos tipos si o si se guardan en un objeto TipoDato.
         return tipo;
+    }
+    
+    /*
+    * Esta funcion calcula el desplazamiento de un campo para generar codigo MEPA.
+    */
+    private void desplazamiento_campo (Token campo){
+        
     }
     
 }
