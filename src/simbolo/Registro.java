@@ -118,8 +118,59 @@ public class Registro extends Simbolo {
     /*
     * Esta funcion calcula el desplazamiento de un campo para generar codigo MEPA.
     */
-    private void desplazamiento_campo (Token campo){
+    public int desplazamiento_campo (Token campo){
+        //Variables de control para el primer while.
+        int n=this.lista_campos.size();
+        int i=0;
+        //Desplazamiento del campo.
+        int desplazamiento=0;
+        boolean fin=true;
+        ArrayList<String> campos=null;
+        //Variables de control para el segundo while anidado.
+        int j, m;
         
+        while(fin && i<n){
+            //Obtenemos una hipotetica lista de ids en un campo del registro.
+            campos=this.lista_campos.get(i).get_parametro_formal();
+            m=campos.size();
+            j=0;
+            while(fin && j<m){
+                
+                if(campos.get(j).equalsIgnoreCase(campo.get_lexema()))
+                    fin=false;
+                else
+                    desplazamiento++;
+                
+                j++;
+            }
+            
+            i++;
+        }
+        
+        return desplazamiento;
+    }
+    
+    /*
+    * Esta funcion devuelve la cantidad de campos de un registro
+    */
+    public int longitud (){
+        //Variables de control para el primer while.
+        int n=this.lista_campos.size();
+        int i=0;
+        //Cantidad de campos del registro.
+        int longitud=0;
+        ArrayList<String> campos=null;
+                
+        while(i<n){
+            //Obtenemos una hipotetica lista de ids en un campo del registro.
+            campos=this.lista_campos.get(i).get_parametro_formal();
+            
+            longitud += campos.size();
+            
+            i++;
+        }
+        
+        return longitud;
     }
     
 }

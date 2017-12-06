@@ -170,13 +170,17 @@ public class GeneradorCodigo {
         int n=this.mepa.size();
         
         for(i=0;i<n;i++){
-            etiqueta=this.mepa.get(i).get_etiqueta();
-            if(etiqueta.length() == 0){
-                espacio=this.espacio(10);
-                codigo_mepa += espacio+this.mepa.get(i).get_inst()+"\n";
-            }else{
-                espacio=this.espacio(10 - etiqueta.length());
-                codigo_mepa += etiqueta+espacio+this.mepa.get(i).get_inst()+"\n";
+            inst=this.mepa.get(i).get_inst();
+            //En el caso de una expresion anidada sintetizamos codigo mepa vacio. Esto provoca saltos de linea.
+            if(inst.length() != 0){
+                etiqueta=this.mepa.get(i).get_etiqueta();
+                if(etiqueta.length() == 0){
+                    espacio=this.espacio(10);
+                    codigo_mepa += espacio+this.mepa.get(i).get_inst()+"\n";
+                }else{
+                    espacio=this.espacio(10 - etiqueta.length());
+                    codigo_mepa += etiqueta+espacio+this.mepa.get(i).get_inst()+"\n";
+                }
             }
         }
         
@@ -888,6 +892,13 @@ public class GeneradorCodigo {
                              Registro registro=new Registro();
                              r(registro);
                              match("end");
+                             
+                             //Agregamos una instruccion MEPA para reservar memoria exclusiva para el/los registro/s.
+                             this.mepa.add(new ParMepa("","RMEM "+(registro.longitud()*ids.size())));
+                             this.cant_mem_estructurado += registro.longitud()*ids.size();
+                             //Restamos la cantidad de variables definidas, pues se corresponden con registros.
+                             this.cant_variables -= ids.size();
+                             
                              insertar_tipos(ts,ids,new Variable(registro));
                              break;
             default : 
@@ -1277,8 +1288,8 @@ public class GeneradorCodigo {
                                         argumento(ts, argumentos);
                                         
                                         //--- Codigo MEPA ---
-                                        this.mepa.add(new ParMepa("","Debo APVL nivel_lexico, direcc_campo_registro ??"));
-                                        this.mepa.add(new ParMepa("","ALRE nivel_lexico, direcc_registro ??"));
+                                        this.mepa.add(new ParMepa("","APCT "+((Registro)tipo_reg).desplazamiento_campo(token)));
+                                        this.mepa.add(new ParMepa("","ALRE "+n_lexico+", "+((Variable)simbolo).get_espacio_asignado()));
                                         
                                         break;
                             case "["  : //--- Acceso a arreglo, en el lado izq. de una asignacion ---
@@ -2348,7 +2359,7 @@ public class GeneradorCodigo {
             expresion(ts, tipo_syn, tipo_syn_cod);
             //  Sintetizamos el tipo de expresion.
             k_tipo.set_string(tipo_syn.get_string());
-            //System.out.println("\n contenido de k_tipo en exp "+k_tipo.get_string());
+            k_cod.set_string("");
             match(")");
         }else{
             if(digito(token)){
@@ -2368,6 +2379,7 @@ public class GeneradorCodigo {
                                      
                     case "maxint"  : this.preanalisis++;
                                      k_tipo.set_string("integer");
+                                     k_cod.set_string("APCT 32767");
                                      break;
                                      
                     case "succ"    : this.preanalisis++;
@@ -2434,10 +2446,7 @@ public class GeneradorCodigo {
                                                      match(")");
 
                                                      token=this.tokens_sintacticos.get(this.preanalisis);
-                                                     //Verificamos si un procedimiento no esta incluido en una expresion.
-                                                     //if(!token.get_lexema().equalsIgnoreCase(";") && (simbolo instanceof Procedimiento)){
-                                                         
-                                                     //}
+                                                     
                                                      //--- Codigo MEPA ---
                                                      Simbolo funcion=this.obtener_valor(ts, id);
                                                      if(funcion instanceof Funcion)
@@ -2445,14 +2454,14 @@ public class GeneradorCodigo {
                                                      break;
                                         case "." : //--- Acceso a registro ---
                                                    Simbolo td_r=((Variable)simbolo).get_tipo_dato();
-                                                   
+                                                   int n_lexico_reg=this.nivel_lexico;
                                                    //Significa que estamos en presencia de un tipo definido por el usuario.
                                                    if(td_r instanceof TipoDato){
                                                        String id_r=((TipoDato)td_r).get_nombre_tipo();
                                                        td_r=this.obtener_valor(ts, new Token(id_r));
                                                    }
                                                    
-                                                   //   Verificamos si el identificador se encuentra definido como Regtistro.
+                                                   //Verificamos si el identificador se encuentra definido como Regtistro.
                                                    if(!(td_r instanceof Registro)){
                                                        System.out.println("\nError Semantico : *** El identificador \""+id.get_lexema()+"\" debe estar definido como REGISTRO *** Linea "+id.get_linea_programa());
                                                        System.exit(1);
@@ -2464,6 +2473,10 @@ public class GeneradorCodigo {
                                                        this.preanalisis++;
 
                                                    k_tipo.set_string(((Registro)td_r).chequeo_de_tipos(id, token));
+                                                   
+                                                   //--- Codigo MEPA ---
+                                                   this.mepa.add(new ParMepa("","APCT "+((Registro)td_r).desplazamiento_campo(token)));
+                                                   this.mepa.add(new ParMepa("","APRE "+n_lexico_reg+", "+((Variable)simbolo).get_espacio_asignado()));
 
                                                    break;
                                         case "[" : //--- Acceso a arreglo ---
@@ -2512,23 +2525,39 @@ public class GeneradorCodigo {
                                                    else
                                                        op="SUMA";
                                                    
-                                                   
+                                                   //En este caso no sintetizamos nada en k_cod, por defecto se transmite el mismo string vacio que viene por parametro.
+                                                   //Este string vacio generaba saltos de linea en el archivo .mep.
                                                    this.mepa.add(new ParMepa("", "APCT "+li));
                                                    this.mepa.add(new ParMepa("",op));
                                                    this.mepa.add(new ParMepa("","APAR "+n_lexico+", "+((Variable)simbolo).get_espacio_asignado()));
-                                                   
+                                                                                                      
                                                    break;
                                         default : //; //Solamente tenemos un identificador.
-                                                  if(simbolo instanceof Variable){
-                                                      //System.out.println("\nESTA ES LA VARIABLE QUE GENERA PROBLEMAS "+id.get_lexema());
+                                                  if(simbolo instanceof Variable){                                                      
                                                       //Aca hay que solucionar problemas de casteor entre TIPODATO y ARREGLO; REGISTRO ETC
+                                                      if((((Variable)simbolo).get_tipo_dato() instanceof Arreglo)){
+                                                        System.out.println("\nError Semantico : *** Referencia al arreglo \""+id.get_lexema()+"\" incompleta *** linea "+id.get_linea_programa());
+                                                        System.exit(1);
+                                                      }
+                                                      if((((Variable)simbolo).get_tipo_dato() instanceof Registro)){
+                                                        System.out.println("\nError Semantico : *** Referencia al registro \""+id.get_lexema()+"\" incompleta *** linea "+id.get_linea_programa());
+                                                        System.exit(1);  
+                                                      }
+                                                      if((((Variable)simbolo).get_tipo_dato() instanceof Subrango)){
+                                                        System.out.println("\nError Semantico : *** Referencia al subrango \""+id.get_lexema()+"\" incorrecta. No se puede utilizar un subrango en el lado derecho de una expresion *** linea "+id.get_linea_programa());
+                                                        System.exit(1);  
+                                                      }
+                                                      if((((Variable)simbolo).get_tipo_dato() instanceof Enumeracion)){
+                                                        System.out.println("\nError Semantico : *** Referencia a enumeracion \""+id.get_lexema()+"\" incorrecta. No se puede utilizar una enumeracion en el lado derecho de una expresion *** linea "+id.get_linea_programa());
+                                                        System.exit(1);  
+                                                      }
+                                                      
                                                       TipoDato tipo=(TipoDato)((Variable)simbolo).get_tipo_dato();
                                                       Variable var=((Variable)simbolo);
                                                       k_tipo.set_string(tipo.get_nombre_tipo());
                                                       k_cod.set_string("APVL "+this.nivel_lexico+", "+var.get_espacio_asignado());                                                                                                            
                                                       //Si no es parametro formal, es una variable que pertenece a las definiciones locales o bien a otro subprograma en calidad de variable local o parametro formal.
-                                                          
-                                                      
+                                                                                                            
                                                   }else{
                                                       if(simbolo instanceof Constante){
                                                           k_tipo.set_string(((Constante)simbolo).get_tipo());
@@ -2545,7 +2574,7 @@ public class GeneradorCodigo {
                                                                   }else{
                                                                       desplazamiento=((Funcion)subprograma).calcular_desplazamiento(id);
                                                                   }
-                                                                  //System.out.println("\nEste es el valor de desplazamiento : "+desplazamiento);
+                                                                  
                                                                   k_cod.set_string("APVL "+this.nivel_lexico+", "+desplazamiento);
                                                               }
                                                           }else
@@ -3085,7 +3114,7 @@ public class GeneradorCodigo {
             expresion(ts, tipo_syn, tipo_syn_cod);
             //  Sintetizamos el tipo de expresion.
             k_tipo.set_string(tipo_syn.get_string());
-            
+            k_cod.set_string("");
             match(")");
         }else{
             if(digito(token)){
@@ -3105,6 +3134,7 @@ public class GeneradorCodigo {
                                      
                     case "maxint"  : this.preanalisis++;
                                      k_tipo.set_string("integer");
+                                     k_cod.set_string("APCT 32767");
                                      break;
                                      
                     case "succ"    : this.preanalisis++;
@@ -3177,7 +3207,7 @@ public class GeneradorCodigo {
                                                      break;
                                         case "." : //--- Acceso a registro ---
                                                    Simbolo td_r=((Variable)simbolo).get_tipo_dato();
-                                                   
+                                                   int n_lexico_reg=this.nivel_lexico;
                                                    //Significa que estamos en presencia de un tipo definido por el usuario.
                                                    if(td_r instanceof TipoDato){
                                                        String id_r=((TipoDato)td_r).get_nombre_tipo();
@@ -3196,6 +3226,9 @@ public class GeneradorCodigo {
                                                        this.preanalisis++;
 
                                                    k_tipo.set_string(((Registro)td_r).chequeo_de_tipos(id, token));
+                                                   
+                                                   mepa.add(new ParMepa("","APCT "+((Registro)td_r).desplazamiento_campo(token)));
+                                                   mepa.add(new ParMepa("","APRE "+n_lexico_reg+", "+((Variable)simbolo).get_espacio_asignado()));
 
                                                    break;
                                         case "[" : //--- Acceso a arreglo ---
@@ -3252,9 +3285,25 @@ public class GeneradorCodigo {
                                                    
                                                    break;
                                         default : //; //Solamente tenemos un identificador.
-                                                  if(simbolo instanceof Variable){
-                                                      //System.out.println("\nESTA ES LA VARIABLE QUE GENERA PROBLEMAS "+id.get_lexema());
+                                                  if(simbolo instanceof Variable){                                                      
                                                       //Aca hay que solucionar problemas de casteor entre TIPODATO y ARREGLO; REGISTRO ETC
+                                                      if((((Variable)simbolo).get_tipo_dato() instanceof Arreglo)){
+                                                        System.out.println("\nError Semantico : *** Referencia al arreglo \""+id.get_lexema()+"\" incompleta *** linea "+id.get_linea_programa());
+                                                        System.exit(1);
+                                                      }
+                                                      if((((Variable)simbolo).get_tipo_dato() instanceof Registro)){
+                                                        System.out.println("\nError Semantico : *** Referencia al registro \""+id.get_lexema()+"\" incompleta *** linea "+id.get_linea_programa());
+                                                        System.exit(1);  
+                                                      }
+                                                      if((((Variable)simbolo).get_tipo_dato() instanceof Subrango)){
+                                                        System.out.println("\nError Semantico : *** Referencia al subrango \""+id.get_lexema()+"\" incorrecta. No se puede utilizar un subrango en el lado derecho de una expresion *** linea "+id.get_linea_programa());
+                                                        System.exit(1);  
+                                                      }
+                                                      if((((Variable)simbolo).get_tipo_dato() instanceof Enumeracion)){
+                                                        System.out.println("\nError Semantico : *** Referencia a enumeracion \""+id.get_lexema()+"\" incorrecta. No se puede utilizar una enumeracion en el lado derecho de una expresion *** linea "+id.get_linea_programa());
+                                                        System.exit(1);  
+                                                      }
+                                                      
                                                       TipoDato tipo=(TipoDato)((Variable)simbolo).get_tipo_dato();
                                                       Variable var=((Variable)simbolo);
                                                       k_tipo.set_string(tipo.get_nombre_tipo());
